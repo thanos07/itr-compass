@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: itr-file-parser
+    runtime: python
+    plan: free
+    rootDir: worker
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: MAX_UPLOAD_MB
+        value: "20"
+      - key: MAX_EXPANDED_MB
+        value: "60"

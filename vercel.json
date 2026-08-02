@@ -1,0 +1,17 @@
+{
+  "framework": "nextjs",
+  "regions": [
+    "bom1"
+  ],
+  "functions": {
+    "src/app/api/ai/extract/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cloud/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/agents/run/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

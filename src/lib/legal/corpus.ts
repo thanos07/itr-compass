@@ -1,0 +1,195 @@
+export type LegalSource = {
+  id: string;
+  title: string;
+  authority: string;
+  documentType: "act" | "rule" | "notification" | "validation" | "official-guidance";
+  assessmentYears: string[];
+  sections: string[];
+  tags: string[];
+  url: string;
+  effectiveFrom?: string;
+  retrievedAt: string;
+  sourceStatus: "current" | "verify-before-filing";
+  text: string;
+};
+
+/**
+ * Compact, curated retrieval corpus for the free deployment.
+ *
+ * It deliberately stores short, assessment-year-tagged extracts and curated
+ * summaries instead of a large vector index. This keeps the free deployment
+ * small. Every item links to an official source and remains subject to
+ * verification against the current notified form and amendment date.
+ */
+export const LEGAL_CORPUS: LegalSource[] = [
+  {
+    id: "notification-45-2026",
+    title: "CBDT Notification No. 45/2026 — ITR-1 and ITR-4 for AY 2026-27",
+    authority: "Central Board of Direct Taxes, Government of India",
+    documentType: "notification",
+    assessmentYears: ["2026-27"],
+    sections: ["Rule 12", "ITR-1", "ITR-4"],
+    tags: ["notification 45 2026", "two house properties", "itr-1", "itr-4", "rule 12"],
+    url: "https://www.incometax.gov.in/iec/foportal/sites/default/files/2026-04/Notification%20No.45_2026.pdf",
+    effectiveFrom: "2026-04-01",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "current",
+    text: "Notification No. 45/2026 amended Rule 12 and notified the AY 2026-27 ITR-1 and ITR-4 forms. The form wording permits the relevant simplified-form cases with income from up to two house properties, subject to the full notified eligibility and exclusion conditions.",
+  },
+  {
+    id: "ay26-individual-forms",
+    title: "Salaried Individuals for AY 2026-27",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["139", "ITR-1", "ITR-2", "ITR-4"],
+    tags: ["itr form", "salary", "house property", "capital gains", "resident", "eligibility"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/individual/return-applicable-1",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "For AY 2026-27, ITR-1 is for a resident individual other than RNOR with total income up to Rs 50 lakh and only the permitted sources and conditions. ITR-2 applies to an individual or HUF not eligible for ITR-1 and without business or professional income. The official page must be checked for the complete list of inclusions and exclusions.",
+  },
+  {
+    id: "ay26-business-forms",
+    title: "Individuals with Business or Profession Income for AY 2026-27",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["139", "44AD", "44ADA", "44AE", "ITR-3", "ITR-4"],
+    tags: ["business", "profession", "presumptive", "itr-3", "itr-4", "resident"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/individual-business-profession",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "ITR-3 generally covers individuals and HUFs with profits and gains of business or profession when they are not eligible for ITR-1, ITR-2 or ITR-4. ITR-4 is restricted to eligible resident persons with total income up to Rs 50 lakh and qualifying presumptive income under sections 44AD, 44ADA or 44AE, together with only the other permitted sources.",
+  },
+  {
+    id: "section-44ada",
+    title: "Presumptive Taxation Scheme under Section 44ADA",
+    authority: "Income Tax Department, Government of India",
+    documentType: "act",
+    assessmentYears: ["2026-27"],
+    sections: ["44AA", "44ADA"],
+    tags: ["44ada", "specified profession", "professional receipts", "presumptive", "influencer"],
+    url: "https://www.incometaxindia.gov.in/w/tax-on-presumptive-basis-in-case-of-certain-businesses",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "Section 44ADA is intended for a resident person engaged in a specified profession referred to in section 44AA(1), subject to the statutory receipt threshold and other conditions. The official explanation lists legal, medical, engineering or architectural, accountancy, technical consultancy, interior decoration and other notified professions. A portal occupation or business code alone does not create section 44ADA eligibility.",
+  },
+  {
+    id: "section-44ad",
+    title: "Section 44AD Presumptive Business Scheme",
+    authority: "Income Tax Department, Government of India",
+    documentType: "act",
+    assessmentYears: ["2026-27"],
+    sections: ["44AD"],
+    tags: ["44ad", "business", "commission", "brokerage", "agency", "presumptive"],
+    url: "https://www.incometaxindia.gov.in/w/section-44ad-21",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "Section 44AD is a presumptive scheme for an eligible resident assessee carrying on an eligible business, subject to statutory turnover and other conditions. It excludes specified activities such as agency business and income in the nature of commission or brokerage. Eligibility must be tested from the facts and the Act, not merely from the selected return form.",
+  },
+  {
+    id: "section-87a-ay26",
+    title: "Section 87A Rebate for FY 2025-26",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["87A", "115BAC"],
+    tags: ["rebate", "87a", "12 lakh", "60000", "marginal relief", "new regime"],
+    url: "https://www.incometaxindia.gov.in/w/what-is-rebate-under-section-87a-for-f.y-2025-26-and-who-can-claim-it-",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "For AY 2026-27, a resident individual whose total income chargeable under section 115BAC(1A) does not exceed Rs 12 lakh may receive a rebate capped at Rs 60,000, subject to the statutory restrictions. Marginal relief may apply in the specified band above Rs 12 lakh. The threshold test uses total income, while treatment of tax on special-rate income must follow the applicable provision and official utility.",
+  },
+  {
+    id: "ay26-tax-slabs",
+    title: "Tax Slabs and Deductions for AY 2026-27",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["115BAC", "16", "80CCD(2)"],
+    tags: ["slab", "new regime", "standard deduction", "80ccd2", "cess"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/individual/return-applicable-1",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "The official AY 2026-27 individual guidance gives the applicable old and new regime slabs, the Rs 75,000 new-regime standard deduction for eligible salary or pension income, the Rs 50,000 old-regime standard deduction, and the applicable employer NPS deduction conditions. The official validation rules should be checked for employer-category limits and return-field restrictions.",
+  },
+  {
+    id: "itr1-ay26-faq",
+    title: "ITR-1 FAQ for AY 2026-27",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["ITR-1", "112A"],
+    tags: ["itr-1", "sahaj", "capital gain", "foreign asset", "director", "unlisted share", "house property"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/ITR1-FAQ",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "The AY 2026-27 ITR-1 FAQ lists income and taxpayer conditions that make ITR-1 unavailable, including business or professional income, short-term capital gains, specified foreign-asset situations, directorship and unlisted-share holdings. The current AY form permits only the capital-gain and house-property cases expressly stated in the notified form and instructions, so the latest official FAQ and validation rules must be checked.",
+  },
+  {
+    id: "itr4-ay26-faq",
+    title: "ITR-4 FAQ for AY 2026-27",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["ITR-4", "44AD", "44ADA", "44AE", "10-IEA"],
+    tags: ["itr-4", "sugam", "presumptive", "old regime", "form 10-iea", "business"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/itr%204-faqs",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "The AY 2026-27 ITR-4 FAQ restricts the form to eligible resident persons with total income up to Rs 50 lakh and qualifying presumptive income. It also explains that a person with business income who opts for the old regime must comply with the Form 10-IEA timing and switching rules. The exact current eligibility and exclusion list should be verified before filing.",
+  },
+  {
+    id: "ais-guidance",
+    title: "Annual Information Statement (AIS) Guidance",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["AIS", "26AS"],
+    tags: ["ais", "tis", "feedback", "reconciliation", "reported information"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/ais-annual-information-statement",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "AIS provides a comprehensive view of information reported for the taxpayer and includes a feedback facility. It is a reconciliation and prefilling source. A taxpayer should compare it with primary records and submit feedback where appropriate; an AIS description does not by itself settle a disputed legal classification or prove that no other income exists.",
+  },
+  {
+    id: "schedule-fa",
+    title: "ITR-2 Schedule FA Guidance",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["Schedule FA", "ITR-2"],
+    tags: ["foreign asset", "foreign income", "resident", "rnor", "non-resident", "schedule fa"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/itr-2/itr-2-UM",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "Schedule FA requires the applicable foreign asset and foreign income disclosures in ITR-2. The official user manual states that Schedule FA need not be filled by an RNOR or non-resident. Residential status, beneficial ownership, reporting period, peak value and conversion rate can be fact-sensitive and should be verified from the notified schedule and professional advice when uncertain.",
+  },
+  {
+    id: "form67-ftc",
+    title: "Form 67 User Manual",
+    authority: "Income Tax Department, Government of India",
+    documentType: "rule",
+    assessmentYears: ["2026-27"],
+    sections: ["Rule 128", "Form 67", "90", "91"],
+    tags: ["foreign tax credit", "form 67", "rule 128", "foreign income", "dtaa"],
+    url: "https://www.incometax.gov.in/iec/foportal/help/statutory-forms/popular-form/form67-um",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "Rule 128 and Form 67 govern the procedural claim for eligible foreign tax credit by a resident taxpayer. The official manual requires the prescribed particulars and supporting evidence within the applicable timeline. Treaty entitlement, source-country tax, Indian tax on the same income and credit limits require separate factual verification.",
+  },
+  {
+    id: "capital-gains-112a",
+    title: "Official Guidance on Long-Term Capital Gains",
+    authority: "Income Tax Department, Government of India",
+    documentType: "official-guidance",
+    assessmentYears: ["2026-27"],
+    sections: ["112", "112A", "50AA"],
+    tags: ["ltcg", "112a", "12.5 percent", "125000", "equity", "debt mutual fund", "capital gain"],
+    url: "https://www.incometaxindia.gov.in/w/tax-on-long-term-capital-gains%E2%80%8B",
+    retrievedAt: "2026-08-01",
+    sourceStatus: "verify-before-filing",
+    text: "Official guidance explains the post-23 July 2024 long-term capital-gain rates and the section 112A threshold for qualifying listed equity shares, equity-oriented fund units and business-trust units. Asset type, transfer date, STT, acquisition date, grandfathering and section 50AA conditions must be verified from transaction records and the applicable law.",
+  },
+];
