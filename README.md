@@ -1,77 +1,359 @@
-# ITR File
+# ITR Compass
 
-A deploy-ready, privacy-first Indian income-tax workpaper for **FY 2025–26 / AY 2026–27**. It reads tax documents, keeps extracted values reviewable, compares old and new regimes, screens for ITR-1 to ITR-4, runs four controlled Groq agents, and exports a portable structured workspace.
+**Prepare, compare, and review your income-tax workpaper.**
 
-The visual language is based on the user-provided SimpleByNoor and portfolio projects: cream, navy and royal blue; Fraunces display headings; IBM Plex Sans/Mono; trace-line details; restrained cards; and two switchable colour variants.
+ITR Compass is a privacy-first, evidence-backed Indian income-tax preparation workspace for **FY 2025–26 / AY 2026–27**. It helps users organise tax documents, review extracted values, compare old and new tax regimes, screen potential ITR forms, run controlled AI-assisted checks, and export a portable workpaper.
 
-> **Important:** this is preparation and reconciliation software. It does not submit a return, pay tax, e-verify, determine disputed legal facts or replace a practising tax professional.
+> **Important:** ITR Compass is independent preparation and reconciliation software. It is not affiliated with or endorsed by the Income Tax Department. It does not submit a return, pay tax, e-verify, certify facts, determine disputed legal positions, or replace a practising tax professional.
 
-## Included
+## Repository
 
-- Cream and blue theme variants
-- Seven-step AY 2026–27 return workspace
-- ITR-1 / ITR-2 / ITR-3 / ITR-4 screening
-- Old-versus-new regime estimate
-- Form 16, AIS, TIS, 26AS, prefill/ITR JSON, CSV, XLSX and text parsing in the browser
-- Optional stateless Render parser for PDF, password-protected PDF/ZIP, XLSX, DOCX, ZIP, CSV, JSON and text
-- Optional constrained Groq extraction fallback
-- Four user-triggered Groq agents: document intake, reconciliation, legal retrieval and final review
-- Free, local lexical RAG over a curated AY-aware official-source corpus
-- Input fingerprints that reuse unchanged agent results to conserve Groq quota
-- Local-first browser storage
-- Portable `.itrwork.json` backup/import
-- Optional client-encrypted Neon sync with separate read, update and delete capabilities, immediate owner deletion and 90-day expiry
-- Legal-methodology, privacy-notice, terms and security pages
-- Vercel and Render configuration
-- Neon SQL migration
-- Tax-engine smoke tests
+**GitHub:** [github.com/thanos07/itr-compass](https://github.com/thanos07/itr-compass)
+
+## Highlights
+
+- Privacy-first, local-by-default workspace
+- FY 2025–26 / AY 2026–27 deterministic tax calculations
+- Old-versus-new regime comparison
+- Potential ITR-1, ITR-2, ITR-3 and ITR-4 screening
+- Browser parsing for PDF, JSON, CSV, XLSX and text files
+- Optional Render parser for wider and password-protected file support
+- Reviewable document claims with source locators and confidence values
+- Four user-triggered Groq agents
+- Local assessment-year-aware legal retrieval
+- Portable `.itrwork.json` backup and restore
+- Readable PDF workpaper with an encrypted, restorable workspace attachment
+- Optional client-encrypted Neon workspace recovery
+- Separate recovery, update and deletion capabilities
+- Cream and blue interface themes
+- Nonce-based Content Security Policy
+- Legal methodology, privacy, terms and security pages
+- Vercel, Render and Neon deployment configuration
+
+## What the application does
+
+### 1. Collects source documents
+
+Users can add common tax documents such as:
+
+- Form 16
+- AIS and TIS
+- Form 26AS
+- Prefill or ITR JSON
+- Bank statements
+- Broker and capital-gain statements
+- CSV, XLSX and supported text files
+
+Supported files are parsed in the browser first. The optional Render worker is used only for formats or cases that need server-side processing.
+
+### 2. Keeps extracted values reviewable
+
+Document extraction creates candidate claims rather than silently changing the return. Each claim can include:
+
+- source document
+- field mapping
+- extracted value
+- confidence score
+- source locator
+- accepted or pending status
+
+The user remains in control of which values are accepted into the workpaper.
+
+### 3. Runs deterministic tax calculations
+
+The tax engine compares supported old- and new-regime outcomes using versioned TypeScript rules for AY 2026–27.
+
+The application intentionally blocks or warns when a reliable calculation is outside its implemented scope.
+
+### 4. Screens potential ITR forms
+
+The form selector screens for potential:
+
+- ITR-1
+- ITR-2
+- ITR-3
+- ITR-4
+
+The result is described as a **potential candidate** or **safer fallback**, not as a legal certification.
+
+### 5. Runs controlled AI-assisted review
+
+The Agent Desk provides four user-triggered workflows:
+
+1. **Document Intake Agent** — reviews the document inventory, parser warnings and missing evidence categories.
+2. **Reconciliation Agent** — compares source claims, accepted values and workpaper fields.
+3. **Legal Retrieval Agent** — retrieves assessment-year-filtered material from a curated official-source corpus and limits returned citations to retrieved source IDs.
+4. **Final Review Agent** — combines deterministic tax and form results with evidence controls and prior agent summaries to identify unresolved handoff issues.
+
+Tax calculations remain deterministic. The agents do not submit returns, autonomously loop, invent unsupported amounts or replace professional advice.
+
+See [`docs/AGENTS.md`](docs/AGENTS.md).
 
 ## Legal-design choices
 
-This project deliberately rejects several unsafe assumptions found during the source audit:
+ITR Compass deliberately avoids several unsafe assumptions:
 
-- Section 44ADA is not inferred from an influencer/activity code. It is restricted to professions referred to in section 44AA(1).
-- Section 87A eligibility uses **total income**, not only slab-rate income.
-- Supported special-rate tax is not offset by the rebate.
-- Presumptive profit is never converted into invented cash in hand.
-- AIS/TIS and broker labels are evidence for reconciliation, not conclusive legal classification.
-- Successful JSON/schema validation is not described as legal correctness.
+- Section 44ADA is not inferred from an occupation or activity label alone.
+- Section 44ADA screening requires an explicit profession confirmation under section 44AA(1), receipt facts and presumptive-income checks.
+- Section 87A eligibility is based on total income.
+- Supported special-rate tax is not automatically offset by the rebate.
+- Presumptive profit is never converted into an invented cash-in-hand value.
+- AIS, TIS and broker labels are treated as reconciliation evidence, not conclusive legal classification.
+- Successful parsing or JSON-schema validation is not described as legal correctness.
+- Unsupported calculations produce blockers or warnings instead of confident estimates.
 
 See [`docs/SOURCE_AUDIT.md`](docs/SOURCE_AUDIT.md) and the in-product `/legal` page.
 
-## Stack
+## Technology stack
 
-- Next.js 16, React 19, TypeScript and Tailwind CSS 4
-- Browser PDF/CSV/XLSX parsing
-- Neon Postgres + Drizzle for optional encrypted workspace storage
-- Groq API for optional constrained extraction and four controlled agents
-- Local BM25-style legal retrieval with no embedding API or paid vector store
-- FastAPI + permissively licensed pypdf, defusedxml and openpyxl on Render for optional parsing fallback
+### Web application
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- `pdfjs-dist` for browser PDF processing
+- `pdf-lib` for readable and restorable PDF reports
+- Papa Parse for CSV
+- SheetJS for spreadsheets
+- Zod for workspace and API validation
+- Lucide icons
+- Fraunces and IBM Plex fonts
+
+### Optional services
+
+- Neon Postgres
+- Drizzle ORM
+- Groq API
+- Render
+- FastAPI
+- pypdf
+- defusedxml
+- openpyxl
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[User browser] --> N[Next.js application]
+    U --> B[Browser document parsing]
+    U --> E[Client-side encryption]
+
+    N --> G[Optional Groq agents]
+    N --> R[Local legal retrieval]
+    N --> T[Deterministic tax engine]
+
+    B --> W[Structured workpaper]
+    T --> W
+    G --> W
+    R --> G
+
+    U -. optional fallback .-> P[Render parser]
+    E -. optional encrypted sync .-> D[Neon Postgres]
+
+    W --> J[.itrwork.json backup]
+    W --> F[Readable restorable PDF]
+```
+
+Every external integration is optional:
+
+| Configuration | Available capabilities |
+|---|---|
+| Vercel only | Local workpaper, deterministic calculation, browser parsing, JSON backup and PDF report |
+| Vercel + Render | Wider document parsing and password-protected file fallback |
+| Vercel + Neon | Client-encrypted cloud recovery |
+| Vercel + Groq | Controlled extraction fallback and four review agents |
 
 ## Local development
 
-Requires Node.js 20+ and Python 3.11+ for the optional worker.
+### Requirements
+
+- Node.js 20 or newer
+- npm
+- Python 3.11 or newer for the optional parser worker
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/thanos07/itr-compass.git
+cd itr-compass
+```
+
+### 2. Create the local environment file
+
+#### Windows PowerShell
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+#### macOS or Linux
 
 ```bash
 cp .env.example .env.local
+```
+
+Add only the integrations needed for local testing.
+
+### 3. Install and start the web application
+
+```bash
 npm install
 npm run dev
 ```
 
 Open `http://localhost:3000`.
 
-Run the optional parser separately:
+## Optional parser worker
 
-```bash
+The parser worker is not required for browser-supported files.
+
+### Windows PowerShell
+
+```powershell
 cd worker
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-Useful checks:
+### macOS or Linux
+
+```bash
+cd worker
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+Then set:
+
+```env
+NEXT_PUBLIC_PARSER_URL=http://localhost:8000
+```
+
+## Environment variables
+
+Copy `.env.example` to `.env.local`. Never commit `.env.local`, API keys or database credentials.
+
+### Public application configuration
+
+| Variable | Required | Purpose |
+|---|---:|---|
+| `NEXT_PUBLIC_SITE_URL` | production | Public Vercel URL or custom domain used for metadata |
+| `NEXT_PUBLIC_PARSER_URL` | no | Optional Render or local parser URL |
+| `NEXT_PUBLIC_OPERATOR_NAME` | public launch | Public service-operator name |
+| `NEXT_PUBLIC_OPERATOR_URL` | no | Public operator or portfolio URL |
+| `NEXT_PUBLIC_PRIVACY_CONTACT` | public launch | Monitored privacy contact |
+| `NEXT_PUBLIC_SECURITY_CONTACT` | public launch | Private vulnerability-reporting contact |
+| `NEXT_PUBLIC_LEGAL_CONTACT` | public launch | Monitored legal and support contact |
+
+### Optional server-side integrations
+
+| Variable | Required | Purpose |
+|---|---:|---|
+| `DATABASE_URL` | no | Neon pooled Postgres connection string |
+| `GROQ_API_KEY` | no | Enables constrained extraction and the four agents |
+| `GROQ_MODEL` | no | Extraction model |
+| `GROQ_AGENT_MODEL` | no | Agent model |
+| `AI_REQUESTS_PER_MINUTE` | no | Best-effort extraction throttle |
+| `AGENT_REQUESTS_PER_MINUTE` | no | Best-effort agent throttle |
+| `CLOUD_REQUESTS_PER_MINUTE` | no | Best-effort cloud API throttle |
+| `MAX_CLOUD_PAYLOAD_BYTES` | no | Maximum encrypted cloud payload |
+| `CSP_REPORT_ONLY` | no | Enables report-only CSP testing when set to `true` |
+
+Recommended model configuration:
+
+```env
+GROQ_MODEL=openai/gpt-oss-20b
+GROQ_AGENT_MODEL=openai/gpt-oss-20b
+```
+
+### Parser worker variables
+
+| Variable | Purpose |
+|---|---|
+| `ALLOWED_ORIGINS` | Comma-separated exact web origins allowed to call the parser |
+| `MAX_UPLOAD_MB` | Maximum uploaded file size |
+| `MAX_EXPANDED_MB` | ZIP and DOCX expansion safety limit |
+
+## Backups and handoff
+
+### JSON workspace backup
+
+The `.itrwork.json` format is the most reliable portable workspace backup. It contains structured workpaper data, but not the original uploaded files.
+
+### Restorable PDF report
+
+The application can generate a readable PDF workpaper containing:
+
+- taxpayer inputs
+- form screening
+- regime comparison
+- tax calculation breakdown
+- eligibility inputs
+- document inventory
+- accepted claims
+- agent summaries and findings
+- handoff checklist
+
+The PDF also contains an encrypted workspace attachment that can be restored through the application.
+
+Important behavior:
+
+- The visible PDF report is readable without the backup password.
+- The embedded workspace is encrypted using the browser-side encryption flow.
+- The password is not stored by the application.
+- Printing, scanning, compressing or editing the PDF may remove the embedded attachment.
+- Keep the `.itrwork.json` backup as the primary restoration format.
+
+## Privacy and security architecture
+
+- Browser parsing is attempted first.
+- Raw files are not stored in Neon.
+- Stored previews redact common PAN, Aadhaar, IFSC, email and Indian mobile-number patterns.
+- Agent requests re-apply server-side redaction.
+- Agent payloads are length-limited.
+- Optional cloud workspaces are encrypted in the browser using AES-256-GCM.
+- Encryption keys are derived with PBKDF2.
+- The recovery key is stored after `#` in a recovery URL, so normal HTTP navigation does not send it to the server.
+- Neon receives ciphertext, IV, salt, schema version, token hashes and expiry metadata.
+- Recovery and owner secrets remain in URL fragments and local UI state.
+- Update and deletion require separate owner capabilities.
+- Workspace imports are validated against a bounded schema.
+- The parser worker is stateless at the application level.
+- DOCX XML processing uses hardened parsing.
+- Strict request limits and payload limits reduce accidental or abusive usage.
+
+Pattern redaction, browser encryption and stateless processing do not eliminate the deployment operator's legal and security responsibilities.
+
+Read [`SECURITY.md`](SECURITY.md) before a public launch.
+
+## Content Security Policy
+
+ITR Compass uses a per-request, nonce-based Content Security Policy generated by `src/proxy.ts`.
+
+Production `script-src` does not rely on unrestricted inline scripts or `unsafe-eval`. The theme bootstrap and Next.js framework scripts are authorised with the request nonce.
+
+Nonce generation requires dynamic rendering of the root layout. This uses more request-time compute than a fully static export but provides stronger script-injection protection for an application handling financial information.
+
+For initial deployment testing only:
+
+```env
+CSP_REPORT_ONLY=true
+```
+
+After testing, enforce the policy:
+
+```env
+CSP_REPORT_ONLY=false
+```
+
+## Tests and checks
+
+Run the web checks:
 
 ```bash
 npm run build
@@ -79,150 +361,174 @@ npm run lint
 npm run test:tax
 npm run test:agents
 npm run test:forms
-python -m py_compile worker/main.py
-(cd worker && python test_smoke.py)
+npm run test:csp
 ```
 
-## Environment variables
+Run the parser checks:
 
-| Variable | Required | Purpose |
-|---|---:|---|
-| `NEXT_PUBLIC_SITE_URL` | production | Public Vercel URL/custom domain used for metadata |
-| `NEXT_PUBLIC_PARSER_URL` | no | Render parser base URL; omit to keep parsing browser-only |
-| `DATABASE_URL` | no | Neon pooled Postgres connection string for encrypted sync |
-| `GROQ_API_KEY` | no | Enables the AI extraction fallback and all four controlled agents |
-| `GROQ_MODEL` | no | Extraction model; defaults to the resource-efficient `openai/gpt-oss-20b` |
-| `GROQ_AGENT_MODEL` | no | Model used by all four agents; defaults to `openai/gpt-oss-20b` |
-| `AI_REQUESTS_PER_MINUTE` | no | Best-effort per-instance extraction throttle; defaults to 5 |
-| `AGENT_REQUESTS_PER_MINUTE` | no | Best-effort per-instance agent throttle; defaults to 6 so one four-agent run fits |
-| `CLOUD_REQUESTS_PER_MINUTE` | no | Best-effort cloud API throttle; defaults to 12 |
-| `MAX_CLOUD_PAYLOAD_BYTES` | no | Maximum encrypted payload accepted by the cloud API |
-| `NEXT_PUBLIC_PRIVACY_CONTACT` | public launch | Monitored privacy/grievance contact shown in the privacy notice |
-| `NEXT_PUBLIC_SECURITY_CONTACT` | public launch | Private vulnerability-reporting contact |
-| `NEXT_PUBLIC_OPERATOR_NAME` / `NEXT_PUBLIC_LEGAL_CONTACT` / `NEXT_PUBLIC_GOVERNING_STATE` | public launch | Deployment-owner identity and starter terms placeholders |
+```bash
+python -m py_compile worker/main.py
+```
 
-The Python worker uses:
+From the `worker` directory:
 
-| Variable | Purpose |
-|---|---|
-| `ALLOWED_ORIGINS` | Comma-separated exact Vercel/custom-domain origins |
-| `MAX_UPLOAD_MB` | Worker upload limit; defaults to 20 MB |
-| `MAX_EXPANDED_MB` | ZIP/DOCX expansion safety limit; defaults to 60 MB |
+```bash
+python test_smoke.py
+```
 
 ## Free deployment
 
-### 1. Create the Neon database
+### 1. Push to GitHub
 
-1. Create a Neon project and copy the **pooled** connection string.
-2. For a new database, run [`drizzle/0000_encrypted_workspaces.sql`](drizzle/0000_encrypted_workspaces.sql). For a v0.2 database, back up any needed encrypted data and run [`drizzle/0001_cloud_authorization.sql`](drizzle/0001_cloud_authorization.sql); legacy rows are removed because they lack owner tokens.
-3. Keep the connection string for the Vercel environment variable `DATABASE_URL`.
+```bash
+git init
+git branch -M main
+git add .
+git commit -m "feat: launch ITR Compass"
+git remote add origin https://github.com/thanos07/itr-compass.git
+git push -u origin main
+```
 
-Neon is optional. Without it, local mode, calculation, parsing and backup/import continue to work.
+### 2. Optional Neon database
 
-### 2. Deploy the parser to Render
+1. Create a Neon project.
+2. Copy the pooled connection string.
+3. Run [`drizzle/0000_encrypted_workspaces.sql`](drizzle/0000_encrypted_workspaces.sql).
+4. For a compatible existing database, review [`drizzle/0001_cloud_authorization.sql`](drizzle/0001_cloud_authorization.sql).
+5. Set `DATABASE_URL` in Vercel.
 
-1. Push this repository to GitHub.
-2. In Render, choose **New → Blueprint** and select the repository. `render.yaml` creates the free Python web service.
-3. Set `ALLOWED_ORIGINS` to the exact Vercel domain, for example `https://your-project.vercel.app`.
-4. Copy the resulting parser URL.
+Neon is optional. Local mode and file export continue to work without it.
 
-The Render free service can sleep after inactivity, so the first fallback parse may take longer. Browser-supported files do not need the worker.
+### 3. Optional Render parser
 
-### 3. Create a Groq key
+1. In Render, choose **New → Blueprint**.
+2. Select this GitHub repository.
+3. Let `render.yaml` create the Python service.
+4. Set `ALLOWED_ORIGINS` to the exact Vercel or custom-domain origin.
+5. Copy the deployed parser URL.
+6. Set it as `NEXT_PUBLIC_PARSER_URL` in Vercel.
 
-Create a Groq API key and set it only on Vercel as `GROQ_API_KEY`. Extraction and all four agents are user-triggered. The default `openai/gpt-oss-20b` model conserves free-tier tokens; switch `GROQ_AGENT_MODEL` to a larger active Groq model only when your quota permits.
+Free Render services may sleep after inactivity, so the first request can take longer.
 
-Groq is optional. Deterministic parsing, calculation, form screening, manual entry and export remain available without it; the agent desk will clearly report that Groq is not configured.
+### 4. Optional Groq integration
 
-### 4. Deploy Next.js to Vercel
+Create a Groq API key and add it only to the Vercel project environment:
 
-1. Import the GitHub repository into Vercel.
-2. Add the environment variables:
-
-```text
-NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
-NEXT_PUBLIC_PARSER_URL=https://your-render-service.onrender.com
-DATABASE_URL=postgresql://...
-GROQ_API_KEY=gsk_...
+```env
+GROQ_API_KEY=
 GROQ_MODEL=openai/gpt-oss-20b
 GROQ_AGENT_MODEL=openai/gpt-oss-20b
 ```
 
-3. Deploy. Vercel auto-detects Next.js.
-4. Update `NEXT_PUBLIC_SITE_URL` after attaching a custom domain.
+Do not expose the API key through a `NEXT_PUBLIC_` variable.
 
-Every optional integration may be omitted:
+Without Groq, deterministic parsing, manual entry, calculation, form screening and export remain available.
 
-- **Vercel only:** local workpaper, calculator, browser parsing and export/import
-- **+ Render:** wider file parsing and password-protected file fallback
-- **+ Neon:** client-encrypted recovery links
-- **+ Groq:** reviewable extraction candidates and the four controlled agents
+### 5. Deploy the Next.js application to Vercel
 
-## Four controlled agents
+1. Import `thanos07/itr-compass` into Vercel.
+2. Add the required production environment variables.
+3. Deploy.
+4. Set `NEXT_PUBLIC_SITE_URL` to the final Vercel or custom-domain URL.
+5. Redeploy after changing public environment variables.
+6. Test the enforced CSP, parser CORS, Groq routes and encrypted cloud flow.
 
-The Agent desk contains four Groq-backed workflows:
+Example production configuration:
 
-1. **Document Intake Agent** — inventories evidence, parser warnings and missing source categories.
-2. **Reconciliation Agent** — compares source candidates, accepted claims and workpaper fields.
-3. **Legal Retrieval Agent** — runs assessment-year-filtered lexical RAG over curated official-source extracts and summaries, with effective-date metadata, and returns only retrieved citations.
-4. **Final Review Agent** — combines deterministic form/tax results, evidence controls and prior agent summaries into handoff blockers.
+```env
+NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
+NEXT_PUBLIC_PARSER_URL=https://your-parser.onrender.com
 
-Tax calculations remain deterministic TypeScript functions. The agents do not submit returns, choose unsupported amounts, invent legal citations or autonomously loop. See [`docs/AGENTS.md`](docs/AGENTS.md).
+NEXT_PUBLIC_OPERATOR_NAME=Md Noor
+NEXT_PUBLIC_OPERATOR_URL=https://portfolio-rosy-psi-74.vercel.app/
+NEXT_PUBLIC_PRIVACY_CONTACT=
+NEXT_PUBLIC_SECURITY_CONTACT=
+NEXT_PUBLIC_LEGAL_CONTACT=
 
-### Free-resource design
+DATABASE_URL=
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-20b
+GROQ_AGENT_MODEL=openai/gpt-oss-20b
 
-The default deployment does not require LangGraph hosting, Redis, an embedding API or a paid vector database. Legal retrieval runs inside the Vercel function, Neon stores only optional client-encrypted workspaces, and Render is used only as a parsing fallback. Free plans have usage quotas and Render free web services can cold-start after idle periods, so this architecture is intended for a student portfolio/demo rather than unlimited public traffic.
+CSP_REPORT_ONLY=false
+```
 
-## Privacy architecture
+## Current calculation boundaries
 
-- Browser parsing is attempted first.
-- Raw files are not stored in Neon.
-- Stored previews redact common PAN, Aadhaar, IFSC, email and Indian mobile patterns.
-- Agent requests re-apply server-side redaction and cap the payload to eight shortened document previews.
-- Cloud workspaces are encrypted in the browser using AES-256-GCM and a PBKDF2-derived key.
-- The recovery key is placed after `#` in the recovery URL, so normal HTTP navigation does not send it to the server.
-- Neon receives ciphertext, IV, salt, schema version, hashed update/delete tokens and expiry. The recovery and owner secrets remain in URL fragments and local UI state.
-- The included parser is stateless at application level, uses hardened DOCX XML parsing, avoids the prior AGPL PDF dependency, and reports `retained: false`.
+The estimator covers the displayed AY 2026–27:
 
-Pattern redaction, client-side encryption and stateless code do not remove the deployment owner's duties. Read [`SECURITY.md`](SECURITY.md) before a public launch.
+- individual slab calculations
+- standard deductions
+- section 87A threshold and rebate logic
+- 4% cess
+- supported section 111A treatment
+- supported section 112A treatment
+- VDA tax treatment
+- supported old-regime deductions
+- supported taxes-paid inputs
 
-## Current calculator boundaries
+It does not fully automate:
 
-The estimator covers the displayed AY 2026–27 slabs, standard deductions, section 87A threshold/rebate logic, 4% cess, section 111A, section 112A and VDA rates. It does not fully automate:
+- surcharge or surcharge marginal relief
+- every unused-basic-exemption interaction
+- all capital-gain grandfathering and transaction-date variations
+- complete loss set-off and carry-forward
+- every deduction condition and evidence requirement
+- DTAA positions
+- Form 67
+- Schedule FA
+- beneficial-ownership analysis
+- tax-audit determination
+- notices, reassessment or prosecution matters
+- trusts, firms or companies
 
-- surcharge or surcharge marginal relief;
-- every unused-basic-exemption interaction;
-- all capital-gain grandfathering and transaction-date variations;
-- complete loss set-off/carry-forward;
-- every deduction condition and proof requirement;
-- DTAA, Form 67, Schedule FA and beneficial-ownership analysis;
-- tax audit, notices, trusts, firms or companies.
+When a calculation is unsupported, the interface withholds a final recommendation or lists blocking issues. Reproduce supported final figures in the notified official AY 2026–27 return utility before filing.
 
-When `supported` is false, the UI withholds the final estimate and lists blocking issues. Always reproduce supported final figures in the notified AY 2026–27 return utility and resolve its validation messages using the Act, Rules, notifications and facts—not invented data.
+## Project structure
 
-## v0.3 remediation highlights
+```text
+itr-compass/
+├── docs/                  # Agent, source-audit and project documentation
+├── drizzle/               # Neon database migrations
+├── public/                # Static assets and PDF.js worker
+├── src/
+│   ├── app/               # Next.js routes, metadata and API endpoints
+│   ├── components/        # Interface components
+│   └── lib/               # Tax engine, schemas, agents, parsing and security
+├── worker/                # Optional FastAPI parser
+├── .env.example           # Safe environment-variable template
+├── render.yaml            # Render Blueprint configuration
+├── vercel.json            # Vercel configuration
+├── SECURITY.md            # Vulnerability-reporting guidance
+├── NOTICE.md              # Third-party notices
+└── LICENSE                # MIT licence
+```
 
-- Removed the unrestricted generic new-regime deduction; only explicit supported fields are used.
-- Expanded ITR screening for agricultural income, section 194N, lottery/racehorse income, section 115BBE, audit indicators, Form 10-IEA and detailed sections 44AD/44ADA/44AE facts.
-- Replaced client-selected cloud IDs with server-generated IDs and separate hashed update/delete tokens.
-- Added cloud rate limiting, request-size checks and immediate authorised deletion.
-- Replaced the old npm-registry SheetJS package with the current official distribution URL.
-- Replaced PyMuPDF with BSD-licensed pypdf and added defusedxml for DOCX parsing.
-- Added explicit consent controls for Render, Groq and Neon transfers.
-- Added CSP, HSTS, privacy/grievance, terms and security-reporting pages.
+## Responsible disclosure
+
+Do not open a public issue containing:
+
+- real taxpayer information
+- API keys
+- database credentials
+- active recovery links
+- owner tokens
+- exploitable security details
+
+Use the private vulnerability-reporting contact configured for the deployed application. See [`SECURITY.md`](SECURITY.md).
 
 ## Repository notices
 
-The optional parser adapts ideas and portions from the MIT-licensed `prepare-india-tax-return` project. The upstream notice is preserved in [`worker/THIRD_PARTY_LICENSE.txt`](worker/THIRD_PARTY_LICENSE.txt). See [`NOTICE.md`](NOTICE.md).
+The optional parser adapts ideas and portions from the MIT-licensed `prepare-india-tax-return` project. The upstream notice is preserved in [`worker/THIRD_PARTY_LICENSE.txt`](worker/THIRD_PARTY_LICENSE.txt).
 
-## Strict CSP in v0.4
+See [`NOTICE.md`](NOTICE.md).
 
-The application uses a per-request, nonce-based Content Security Policy generated by `src/proxy.ts`. Production `script-src` does not contain `'unsafe-inline'` or `'unsafe-eval'`; the theme bootstrap and Next.js framework scripts are authorized with the request nonce. Inline event-handler attributes are blocked with `script-src-attr 'none'`.
+## Author
 
-Nonce generation requires dynamic rendering of the root layout. This uses more request-time compute than a fully static export, but provides materially stronger XSS protection for a financial-data application. During initial deployment testing only, set `CSP_REPORT_ONLY=true`; enforce the policy afterward by removing that variable or setting it to `false`.
+Designed and developed by **[Md Noor](https://portfolio-rosy-psi-74.vercel.app/)**.
 
-Run the regression check with:
+GitHub: [@thanos07](https://github.com/thanos07)
 
-```bash
-npm run test:csp
-```
+## Licence
+
+This project is available under the [MIT License](LICENSE).
