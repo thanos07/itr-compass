@@ -30,6 +30,11 @@ import type { TaxWorkspace } from "@/lib/workspace-types";
 
 type PdfMode = "download" | "import" | null;
 
+// Prevent the same cloud workspace from being restored again whenever
+// Step 7 unmounts and remounts during navigation between workpaper steps.
+// This resets on a real browser page reload.
+const autoLoadedCloudIds = new Set<string>();
+
 function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -359,7 +364,11 @@ export default function WorkspaceTools() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("cloud");
-    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+    const hash = new URLSearchParams(
+      window.location.hash.replace(/^#/, ""),
+    );
+
     const key = hash.get("key");
     const write = hash.get("write");
     const del = hash.get("delete");
@@ -368,9 +377,16 @@ export default function WorkspaceTools() {
     if (key) setRecoveryKey(key);
     if (write) setWriteToken(write);
     if (del) setDeleteToken(del);
-    if (id && key) void loadCloud(id, key);
 
-    // Recovery links auto-load once.
+    // Restore only once during the current browser page lifecycle.
+    // Moving between Steps 5, 6 and 7 remounts this component, but must
+    // not restore the older cloud copy again and overwrite newer local edits.
+    if (id && key && !autoLoadedCloudIds.has(id)) {
+      autoLoadedCloudIds.add(id);
+      void loadCloud(id, key);
+    }
+
+    // Recovery URL values are intentionally inspected only on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
