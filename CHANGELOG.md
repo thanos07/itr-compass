@@ -5,6 +5,8 @@
 ### CI and regression safety
 
 - Added GitHub Actions quality gates for linting, the full deterministic test suite, the versioned evaluation benchmark and the production build.
+- Added Playwright Chromium end-to-end smoke coverage for public navigation, local workspace persistence, form-screening UI integration and review/reset access.
+- Configured Playwright browser smoke tests to run against the production Next.js build, matching deployed hydration behavior and avoiding dev-HMR-specific instability.
 - Added a parser-worker CI job with dependency installation, compilation, smoke tests and FastAPI route verification.
 - Updated GitHub Actions to the current Node 24-based action runtime.
 - Added accepted-claim conflict protection so a different value cannot silently overwrite an already accepted field.

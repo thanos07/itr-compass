@@ -372,6 +372,15 @@ npm run lint
 npm run build
 ```
 
+Install the Playwright Chromium browser once on a development machine, then run the browser smoke tests:
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+The browser E2E suite runs against a production Next.js build and checks public navigation, workpaper loading, local workspace persistence, form-screening UI integration and access to the review/reset controls.
+
 The browser-document tests cover document-kind detection, supported claim extraction, Indian-number parsing and sensitive-pattern redaction.
 
 Run the parser-worker checks:
@@ -386,7 +395,7 @@ From the `worker` directory:
 python test_smoke.py
 ```
 
-GitHub Actions runs the web test suite, evaluation benchmark, lint, production build, parser smoke tests and FastAPI route verification on every push and pull request.
+GitHub Actions runs the web test suite, evaluation benchmark, lint, production build, Chromium browser E2E smoke tests, parser smoke tests and FastAPI route verification on every push and pull request.
 
 See [`EVALUATION.md`](EVALUATION.md) for benchmark scope and limitations.
 
