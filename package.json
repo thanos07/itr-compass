@@ -16,7 +16,9 @@
     "test:claims": "tsx src/lib/claim-safety.test.ts",
     "test:all": "npm run test:tax && npm run test:tax:regression && npm run test:forms && npm run test:forms:regression && npm run test:agents && npm run test:csp && npm run test:claims",
     "test:tax:regression": "tsx src/lib/tax/engine.regression.test.ts",
-    "test:forms:regression": "tsx src/lib/tax/form-selector.regression.test.ts"
+    "test:forms:regression": "tsx src/lib/tax/form-selector.regression.test.ts",
+    "eval:v1": "tsx src/evals/run-benchmark.ts",
+    "eval": "npm run eval:v1"
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",

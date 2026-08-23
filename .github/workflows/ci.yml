@@ -34,6 +34,9 @@ jobs:
       - name: Test
         run: npm run test:all
 
+      - name: Evaluation benchmark
+        run: npm run eval:v1
+
       - name: Production build
         run: npm run build
 
