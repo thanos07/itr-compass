@@ -2,8 +2,10 @@
 
 ## Benchmark
 
-**Benchmark version:** v1  
-**Assessment year:** 2026-27  
+**Benchmark version:** v1
+
+**Assessment year:** 2026-27
+
 **Command:** `npm run eval:v1`
 
 The benchmark is a deterministic, versioned evaluation layer for the ITR Compass decision pipeline. It is intentionally separate from the unit/regression test suite so repository reviewers can see explicit product-quality metrics rather than only test-file counts.
@@ -33,6 +35,7 @@ The tax and form scenarios evaluate only the rules and safety boundaries that IT
 This benchmark is an engineering evaluation, not tax/legal certification. It does not establish parity with the Income Tax Department filing utility, validate every notified schema rule, or replace professional review. Live Groq model quality is outside v1 because provider responses are non-deterministic and would make the core CI benchmark unstable.
 
 Future benchmark versions should add:
+
 - larger document-extraction fixtures;
 - retrieval precision/recall over a broader authority corpus;
 - adversarial prompt-injection and malformed-document cases;
