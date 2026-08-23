@@ -96,7 +96,7 @@ export default function HomePage() {
           <p className="eyebrow"><span className="trace-tick" />WORKFLOW</p>
           <div className="mt-5 grid gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
             <h2 className="font-display text-[clamp(2rem,4vw,3.4rem)] font-semibold leading-tight tracking-[-0.025em]" style={{ color: "var(--heading)" }}>From scattered documents to a defensible workpaper.</h2>
-            <p className="max-w-[65ch] text-[1rem] leading-relaxed lg:justify-self-end" style={{ color: "var(--text-soft)" }}>The workflow follows the evidence-first structure in the uploaded tax-preparation repositories, while removing unsafe assumptions: no automatic 44ADA eligibility, no invented cash balance and no treatment of AIS as conclusive law.</p>
+            <p className="max-w-[65ch] text-[1rem] leading-relaxed lg:justify-self-end" style={{ color: "var(--text-soft)" }}>The workflow is evidence-first: imported values remain reviewable, section 44ADA is never inferred from an occupation label, missing figures are not invented, and AIS remains reconciliation evidence rather than conclusive law.</p>
           </div>
           <div className="mt-10 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
             {workflow.map((item, index) => (

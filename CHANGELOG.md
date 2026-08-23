@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased — Quality gates, evaluation and parser hardening
+
+### CI and regression safety
+
+- Added GitHub Actions quality gates for linting, the full deterministic test suite, the versioned evaluation benchmark and the production build.
+- Added a parser-worker CI job with dependency installation, compilation, smoke tests and FastAPI route verification.
+- Updated GitHub Actions to the current Node 24-based action runtime.
+- Added accepted-claim conflict protection so a different value cannot silently overwrite an already accepted field.
+- Added AI candidate deduplication for identical field/value claims.
+
+### Tax, form and evaluation coverage
+
+- Expanded AY 2026-27 tax-engine regression coverage across slab boundaries, rebates, marginal relief, deductions, special-rate income, unsupported-scope blockers and tax-payment aggregation.
+- Expanded ITR-1/2/3/4 form-selection regression coverage, including sections 44AD, 44ADA and 44AE boundary cases.
+- Added the versioned `v1` product evaluation benchmark with 30 deterministic scenarios across tax calculation, form selection, legal retrieval and safety controls.
+- Added `EVALUATION.md` to document benchmark scope, methodology and limitations.
+
+### Document parsing and privacy
+
+- Added browser document tests for document-kind detection, supported claim extraction, Indian-number parsing and sensitive-pattern redaction.
+- Added the existing Python parser smoke and XML-hardening suite to CI.
+- Fixed redaction precedence so Indian phone numbers with a `+91` prefix are classified and redacted as phone numbers before the generic 12-digit Aadhaar pattern.
+- Updated README testing instructions to match the enforced quality gates.
+
+### Repository and product consistency
+
+- Removed internal repository-development wording from the public homepage workflow copy.
+- Aligned `.env.example` with the documented public operator URL and removed placeholder parser/security values.
+
 ## 0.4.0 — Nonce-based Content Security Policy
 
 - Replaced `script-src 'unsafe-inline'` with a fresh per-request 128-bit nonce.
