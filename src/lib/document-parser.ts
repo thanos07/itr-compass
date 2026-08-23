@@ -5,16 +5,18 @@ import type { ParsedDocument, SourceClaim } from "@/lib/workspace-types";
 
 const MAX_BROWSER_TEXT = 800_000;
 
-function redactSensitive(text: string) {
+export function redactSensitive(text: string) {
   return text
     .replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/g, "[PAN REDACTED]")
+    // Redact Indian phone numbers before the generic 12-digit Aadhaar pattern.
+    // Otherwise "+91 9876543210" can be consumed as twelve Aadhaar-like digits.
+    .replace(/(?<!\d)(?:\+91[- ]?)?[6-9]\d{9}(?!\d)/g, "[PHONE REDACTED]")
     .replace(/\b(?:\d[ -]?){12}\b/g, "[AADHAAR REDACTED]")
     .replace(/\b[A-Z]{4}0[A-Z0-9]{6}\b/g, "[IFSC REDACTED]")
-    .replace(/\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, "[EMAIL REDACTED]")
-    .replace(/(?<!\d)(?:\+91[- ]?)?[6-9]\d{9}(?!\d)/g, "[PHONE REDACTED]");
+    .replace(/\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, "[EMAIL REDACTED]");
 }
 
-function detectKind(text: string, fileName: string): ParsedDocument["kind"] {
+export function detectKind(text: string, fileName: string): ParsedDocument["kind"] {
   const sample = `${fileName}\n${text.slice(0, 100000)}`.toLowerCase();
   if (sample.includes("form no. 16") || sample.includes("certificate under section 203") || sample.includes("part b (annexure)")) return "form16";
   if (sample.includes("annual information statement") || sample.includes("information category") && sample.includes("ais")) return "ais";
@@ -27,7 +29,7 @@ function detectKind(text: string, fileName: string): ParsedDocument["kind"] {
   return "generic";
 }
 
-function parseIndianNumber(raw: string) {
+export function parseIndianNumber(raw: string) {
   const normalized = raw.replace(/[₹,\s]/g, "").replace(/\(([^)]+)\)/, "-$1");
   const number = Number(normalized);
   return Number.isFinite(number) ? number : null;
@@ -37,7 +39,7 @@ function claim(id: string, documentId: string, label: string, field: string, val
   return { id, documentId, label, field, value, locator, confidence, accepted: false };
 }
 
-function extractClaims(text: string, documentId: string, kind: ParsedDocument["kind"]): SourceClaim[] {
+export function extractClaims(text: string, documentId: string, kind: ParsedDocument["kind"]): SourceClaim[] {
   const compact = text.replace(/\u00a0/g, " ");
   const rules: Array<{ label: string; field: string; patterns: RegExp[]; confidence: number }> = [
     {

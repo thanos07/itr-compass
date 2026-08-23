@@ -63,6 +63,10 @@ jobs:
         working-directory: worker
         run: python -m compileall .
 
+      - name: Run parser smoke tests
+        working-directory: worker
+        run: python test_smoke.py
+
       - name: Verify FastAPI routes
         working-directory: worker
         run: |

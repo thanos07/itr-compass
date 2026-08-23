@@ -353,18 +353,28 @@ CSP_REPORT_ONLY=false
 
 ## Tests and checks
 
-Run the web checks:
+Run the complete deterministic web test suite:
 
 ```bash
-npm run build
-npm run lint
-npm run test:tax
-npm run test:agents
-npm run test:forms
-npm run test:csp
+npm run test:all
 ```
 
-Run the parser checks:
+Run the versioned product evaluation benchmark:
+
+```bash
+npm run eval:v1
+```
+
+Run lint and the production build:
+
+```bash
+npm run lint
+npm run build
+```
+
+The browser-document tests cover document-kind detection, supported claim extraction, Indian-number parsing and sensitive-pattern redaction.
+
+Run the parser-worker checks:
 
 ```bash
 python -m py_compile worker/main.py
@@ -375,6 +385,10 @@ From the `worker` directory:
 ```bash
 python test_smoke.py
 ```
+
+GitHub Actions runs the web test suite, evaluation benchmark, lint, production build, parser smoke tests and FastAPI route verification on every push and pull request.
+
+See [`EVALUATION.md`](EVALUATION.md) for benchmark scope and limitations.
 
 ## Free deployment
 
