@@ -41,7 +41,16 @@ function claim(id: string, documentId: string, label: string, field: string, val
 
 export function extractClaims(text: string, documentId: string, kind: ParsedDocument["kind"]): SourceClaim[] {
   const compact = text.replace(/\u00a0/g, " ");
-  const rules: Array<{ label: string; field: string; patterns: RegExp[]; confidence: number }> = [
+
+  type ClaimRule = {
+    label: string;
+    field: string;
+    patterns: RegExp[];
+    confidence: number;
+    kinds?: ParsedDocument["kind"][];
+  };
+
+  const rules: ClaimRule[] = [
     {
       label: "Gross salary",
       field: "income.grossSalary",
@@ -54,7 +63,9 @@ export function extractClaims(text: string, documentId: string, kind: ParsedDocu
     {
       label: "Income chargeable under Salaries",
       field: "income.grossSalary",
-      patterns: [/income\s+chargeable\s+under\s+the\s+head\s+[“\"']?salar(?:y|ies)[”\"']?[^\d₹-]{0,140}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i],
+      patterns: [
+        /income\s+chargeable\s+under\s+the\s+head\s+[“"']?salar(?:y|ies)[”"']?[^\d₹-]{0,140}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
       confidence: kind === "form16" ? 0.84 : 0.65,
     },
     {
@@ -69,23 +80,102 @@ export function extractClaims(text: string, documentId: string, kind: ParsedDocu
     {
       label: "Other-source income",
       field: "income.otherSources",
-      patterns: [/income\s+from\s+other\s+sources[^\d₹-]{0,120}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i],
+      patterns: [
+        /income\s+from\s+other\s+sources[^\d₹-]{0,120}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
       confidence: 0.62,
+    },
+
+    // Broker/capital-gain summaries only. We intentionally do not apply the
+    // 111A/112A rules to generic/AIS/TIS documents because transaction rows
+    // must not be mistaken for return-level aggregate gains.
+    {
+      label: "STCG under section 111A",
+      field: "income.stcg111A",
+      patterns: [
+        /(?:total\s+)?(?:short[-\s]*term\s+capital\s+gains?|stcg)\s*(?:(?:under\s+section|under|u\/s|section)\s*)?111a(?:\s*(?:taxable\s+at\s+)?\d+(?:\.\d+)?\s*%)?[^\d₹-]{0,100}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
+      confidence: 0.88,
+      kinds: ["broker"],
+    },
+    {
+      label: "LTCG under section 112A",
+      field: "income.ltcg112A",
+      patterns: [
+        /(?:total\s+)?(?:long[-\s]*term\s+capital\s+gains?|ltcg)\s*(?:(?:under\s+section|under|u\/s|section)\s*)?112a(?:\s*(?:taxable\s+at\s+)?\d+(?:\.\d+)?\s*%)?[^\d₹-]{0,100}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
+      confidence: 0.88,
+      kinds: ["broker"],
+    },
+    {
+      label: "VDA income",
+      field: "income.vdaIncome",
+      patterns: [
+        /(?:(?:total\s+)?(?:income\s+from\s+)?virtual\s+digital\s+assets?|(?:total\s+)?vda\s+income)(?:\s*(?:(?:under\s+section|under|u\/s|section)\s*)?115bbh)?(?:\s*(?:taxable\s+at\s+)?\d+(?:\.\d+)?\s*%)?[^\d₹-]{0,100}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
+      confidence: kind === "broker" ? 0.84 : 0.72,
+      kinds: ["broker", "generic", "prefill-json", "itr-json"],
+    },
+
+    // Return-level tax-payment fields are aggregates. Require an explicit
+    // "total" or "aggregate" label so a single challan/AIS/26AS row is not
+    // silently treated as the complete workspace amount.
+    {
+      label: "Total advance tax",
+      field: "taxesPaid.advanceTax",
+      patterns: [
+        /(?:total|aggregate)\s+(?:amount\s+of\s+)?advance\s+tax(?:\s+paid)?[^\d₹-]{0,80}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
+      confidence: kind === "26as" ? 0.88 : 0.76,
+      kinds: ["26as", "prefill-json", "itr-json", "generic"],
+    },
+    {
+      label: "Total self-assessment tax",
+      field: "taxesPaid.selfAssessmentTax",
+      patterns: [
+        /(?:total|aggregate)\s+(?:amount\s+of\s+)?self[-\s]*assessment\s+tax(?:\s+paid)?[^\d₹-]{0,80}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
+      confidence: kind === "26as" ? 0.88 : 0.76,
+      kinds: ["26as", "prefill-json", "itr-json", "generic"],
+    },
+    {
+      label: "Total TCS",
+      field: "taxesPaid.tcs",
+      patterns: [
+        /(?:total|aggregate)\s+(?:amount\s+of\s+)?(?:tax\s+collected\s+at\s+source|tcs)(?:\s+collected)?[^\d₹-]{0,80}(₹?\s?[\d,]+(?:\.\d{1,2})?)/i,
+      ],
+      confidence: kind === "26as" ? 0.88 : 0.76,
+      kinds: ["26as", "ais", "tis", "prefill-json", "itr-json", "generic"],
     },
   ];
 
   const out: SourceClaim[] = [];
   for (const rule of rules) {
+    if (rule.kinds && !rule.kinds.includes(kind)) continue;
+
     for (const pattern of rule.patterns) {
       const match = compact.match(pattern);
       if (!match) continue;
+
       const value = parseIndianNumber(match[1]);
       if (value === null) continue;
+
       const offset = match.index ?? 0;
-      out.push(claim(crypto.randomUUID(), documentId, rule.label, rule.field, value, `text offset ${offset}`, rule.confidence));
+      out.push(
+        claim(
+          crypto.randomUUID(),
+          documentId,
+          rule.label,
+          rule.field,
+          value,
+          `text offset ${offset}`,
+          rule.confidence,
+        ),
+      );
       break;
     }
   }
+
   return out;
 }
 

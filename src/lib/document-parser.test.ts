@@ -88,4 +88,103 @@ assert.equal(parseIndianNumber("not-a-number"), null);
   assert.equal(claims.length, 0);
 }
 
+
+{
+  const text = `
+    Capital Gains Summary
+    Short Term Capital Gain u/s 111A taxable at 20% ₹45,000
+    Long Term Capital Gain u/s 112A taxable at 12.5% ₹1,80,000
+    VDA income under section 115BBH taxable at 30% ₹30,000
+  `;
+
+  const claims = extractClaims(text, "doc-broker", "broker");
+
+  const stcg = claims.find((item) => item.field === "income.stcg111A");
+  assert.equal(stcg?.value, 45_000);
+  assert.equal(stcg?.confidence, 0.88);
+
+  const ltcg = claims.find((item) => item.field === "income.ltcg112A");
+  assert.equal(ltcg?.value, 180_000);
+  assert.equal(ltcg?.confidence, 0.88);
+
+  const vda = claims.find((item) => item.field === "income.vdaIncome");
+  assert.equal(vda?.value, 30_000);
+}
+
+{
+  const claims = extractClaims(
+    "Short Term Capital Gain u/s 111A ₹45,000 Long Term Capital Gain u/s 112A ₹1,80,000",
+    "doc-generic-capital",
+    "generic",
+  );
+
+  assert.equal(
+    claims.some((item) => item.field === "income.stcg111A"),
+    false,
+  );
+  assert.equal(
+    claims.some((item) => item.field === "income.ltcg112A"),
+    false,
+  );
+}
+
+{
+  const claims = extractClaims(
+    "VDA income under section 115BBH ₹30,000",
+    "doc-vda",
+    "generic",
+  );
+
+  assert.equal(claims.length, 1);
+  assert.equal(claims[0]?.field, "income.vdaIncome");
+  assert.equal(claims[0]?.value, 30_000);
+  assert.equal(claims[0]?.confidence, 0.72);
+}
+
+{
+  const text = `
+    Form 26AS Tax Credit Statement
+    Total advance tax paid ₹1,00,000
+    Total self-assessment tax paid ₹25,000
+    Total amount of tax collected at source ₹15,000
+  `;
+
+  const claims = extractClaims(text, "doc-26as-summary", "26as");
+
+  const advance = claims.find((item) => item.field === "taxesPaid.advanceTax");
+  assert.equal(advance?.value, 100_000);
+  assert.equal(advance?.confidence, 0.88);
+
+  const selfAssessment = claims.find(
+    (item) => item.field === "taxesPaid.selfAssessmentTax",
+  );
+  assert.equal(selfAssessment?.value, 25_000);
+
+  const tcs = claims.find((item) => item.field === "taxesPaid.tcs");
+  assert.equal(tcs?.value, 15_000);
+}
+
+{
+  const text = `
+    Advance tax paid ₹5,000
+    Self-assessment tax paid ₹3,000
+    Tax collected at source ₹1,200
+  `;
+
+  const claims = extractClaims(text, "doc-individual-rows", "26as");
+
+  assert.equal(
+    claims.some((item) => item.field === "taxesPaid.advanceTax"),
+    false,
+  );
+  assert.equal(
+    claims.some((item) => item.field === "taxesPaid.selfAssessmentTax"),
+    false,
+  );
+  assert.equal(
+    claims.some((item) => item.field === "taxesPaid.tcs"),
+    false,
+  );
+}
+
 console.log("Document detection, extraction and redaction tests passed.");
