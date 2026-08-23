@@ -8,11 +8,13 @@ type Theme = "cream" | "blue";
 export default function ThemeSwitcher() {
   const [theme, setTheme] = useState<Theme>("cream");
 
+  /* eslint-disable react-hooks/set-state-in-effect -- hydrate browser-only theme after SSR. */
   useEffect(() => {
     const saved = (localStorage.getItem("itr-theme") as Theme | null) || "cream";
     setTheme(saved);
     document.documentElement.dataset.theme = saved;
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const change = (next: Theme) => {
     setTheme(next);

@@ -142,7 +142,7 @@ export async function parseDocumentInBrowser(file: File): Promise<ParsedDocument
   const documentId = crypto.randomUUID();
   const lower = file.name.toLowerCase();
   let result: { text: string; units: number; warnings: string[] };
-  let parser: ParsedDocument["parser"] = "browser";
+  const parser: ParsedDocument["parser"] = "browser";
 
   if (lower.endsWith(".pdf")) result = await parsePdf(file);
   else if (lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".xlsm")) result = await parseSpreadsheet(file);

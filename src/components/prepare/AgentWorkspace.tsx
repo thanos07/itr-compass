@@ -170,6 +170,7 @@ export default function AgentWorkspace() {
   const [groqConsent, setGroqConsent] =
     useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- hydrate browser-only Groq consent after SSR. */
   useEffect(() => {
     setGroqConsent(
       sessionStorage.getItem(
@@ -177,6 +178,7 @@ export default function AgentWorkspace() {
       ) === "yes",
     );
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const changeGroqConsent = (
     value: boolean,

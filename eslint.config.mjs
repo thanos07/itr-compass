@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored/minified PDF.js browser worker; lint our integration, not generated vendor code.
+    "public/pdf.worker.min.mjs",
   ]),
 ]);
 

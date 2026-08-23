@@ -361,6 +361,7 @@ export default function WorkspaceTools() {
     }
   };
 
+  /* eslint-disable react-hooks/set-state-in-effect -- hydrate recovery-link values from the browser URL after SSR. */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("cloud");
@@ -389,6 +390,7 @@ export default function WorkspaceTools() {
     // Recovery URL values are intentionally inspected only on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className="space-y-5">

@@ -22,6 +22,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspace, setWorkspace] = useState<TaxWorkspace>(() => createEmptyWorkspace());
   const [hydrated, setHydrated] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- hydrate the browser-only local workspace after SSR. */
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -37,6 +38,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setHydrated(true);
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!hydrated) return;

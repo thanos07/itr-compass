@@ -3,6 +3,7 @@
 import { AlertTriangle, Bot, CheckCircle2, FileText, Loader2, Trash2, UploadCloud } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { parseDocumentInBrowser, parseDocumentWithWorker } from "@/lib/document-parser";
+import { dedupeCandidateClaims, findAcceptedClaimConflict } from "@/lib/claim-safety";
 import { formatInr } from "@/lib/format";
 import { useWorkspace } from "@/lib/workspace-store";
 import type { ParsedDocument, SourceClaim, TaxWorkspace } from "@/lib/workspace-types";
@@ -25,10 +26,12 @@ export default function DocumentManager() {
   const [groqConsent, setGroqConsent] = useState(false);
   const [renderConsent, setRenderConsent] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- hydrate browser-only transfer consent after SSR. */
   useEffect(() => {
     setGroqConsent(sessionStorage.getItem("itr-file-consent-groq-v1") === "yes");
     setRenderConsent(sessionStorage.getItem("itr-file-consent-render-v1") === "yes");
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const changeConsent = (provider: "groq" | "render", value: boolean) => {
     sessionStorage.setItem(`itr-file-consent-${provider}-v1`, value ? "yes" : "no");
@@ -71,6 +74,22 @@ export default function DocumentManager() {
   const remove = (id: string) => update((draft) => { draft.documents = draft.documents.filter((doc) => doc.id !== id); return draft; });
 
   const accept = (documentId: string, claimId: string) => {
+    const sourceDocument = workspace.documents.find((doc) => doc.id === documentId);
+    const sourceCandidate = sourceDocument?.claims.find((item) => item.id === claimId);
+    if (!sourceCandidate || typeof sourceCandidate.value !== "number") return;
+
+    const conflictingAccepted = findAcceptedClaimConflict(
+      workspace.documents.flatMap((doc) => doc.claims),
+      sourceCandidate,
+    );
+
+    if (conflictingAccepted && typeof conflictingAccepted.value === "number") {
+      setMessage(
+        `Conflict detected for ${sourceCandidate.field}: ${formatInr(conflictingAccepted.value)} is already accepted, while ${sourceCandidate.label} proposes ${formatInr(sourceCandidate.value)}. Review the source evidence before replacing the accepted value.`,
+      );
+      return;
+    }
+
     update((draft) => {
       const document = draft.documents.find((doc) => doc.id === documentId);
       const candidate = document?.claims.find((item) => item.id === claimId);
@@ -78,6 +97,7 @@ export default function DocumentManager() {
       candidate.accepted = true;
       return applyField(draft, candidate.field, candidate.value);
     });
+    setMessage(null);
   };
 
   const aiExtract = async (document: ParsedDocument) => {
@@ -95,12 +115,21 @@ export default function DocumentManager() {
       const claims: SourceClaim[] = data.claims.map((item: { label: string; field: string; value: number; evidence: string; confidence: number }) => ({
         id: crypto.randomUUID(), documentId: document.id, label: item.label, field: item.field, value: item.value, locator: `AI evidence: ${item.evidence}`, confidence: item.confidence, accepted: false,
       }));
+
+      const { uniqueClaims, skipped } = dedupeCandidateClaims(
+        document.claims,
+        claims,
+      );
+
       update((draft) => {
         const target = draft.documents.find((doc) => doc.id === document.id);
-        if (target) target.claims.push(...claims);
+        if (target) target.claims.push(...uniqueClaims);
         return draft;
       });
-      setMessage(`${claims.length} AI candidate${claims.length === 1 ? "" : "s"} added. Review before accepting.`);
+
+      setMessage(
+        `${uniqueClaims.length} new AI candidate${uniqueClaims.length === 1 ? "" : "s"} added.${skipped ? ` ${skipped} duplicate candidate${skipped === 1 ? " was" : "s were"} skipped.` : ""} Review before accepting.`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "AI extraction failed.");
     } finally {
