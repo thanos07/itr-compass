@@ -29,7 +29,7 @@ const operatorUrl =
 const contact =
   process.env.NEXT_PUBLIC_LEGAL_CONTACT ||
   process.env.NEXT_PUBLIC_PRIVACY_CONTACT ||
-  "noorali99307@gmail.com";
+  "mdtahammulnoor@gmail.com";
 
 const termCards = [
   {
