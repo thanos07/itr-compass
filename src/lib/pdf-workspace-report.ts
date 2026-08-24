@@ -1119,7 +1119,7 @@ export async function importWorkspaceFromRestorablePdf(
 
     return validated;
   } finally {
-    await pdf.destroy();
+    await loadingTask.destroy();
   }
 }
 
