@@ -37,3 +37,26 @@ script-src 'self' 'nonce-<per-request-value>' 'wasm-unsafe-eval'; script-src-att
 ```
 
 `unsafe-eval` remains development-only. `unsafe-inline` is absent from `script-src` in every environment. Because nonces must change on every request, the root layout is intentionally dynamically rendered. Use `CSP_REPORT_ONLY=true` only during rollout testing, then remove it or set it to `false` before public use.
+
+## Dependency security status — August 2026
+
+Production dependency security is enforced in CI for both application runtimes.
+
+- Node.js production dependencies are checked with `npm audit --omit=dev --audit-level=high`.
+- Python parser production dependencies are checked with `pip-audit -r worker/requirements.txt`.
+- Python dependency consistency is additionally checked with `pip check`.
+- The current production dependency audits report no known vulnerabilities.
+
+A full development dependency audit currently reports four moderate findings in the
+`drizzle-kit -> @esbuild-kit/esm-loader -> @esbuild-kit/core-utils -> esbuild`
+tooling chain.
+
+These findings are limited to development tooling and are not part of the deployed
+application runtime. The current stable Drizzle Kit release still depends on this
+legacy tooling chain. `npm audit fix --force` proposes a breaking downgrade of
+Drizzle Kit, so that remediation is intentionally not applied.
+
+This dev-only advisory will be reassessed when Drizzle Kit removes or upgrades the
+affected dependency chain. The project should not describe itself as having
+"zero vulnerabilities overall"; the accurate statement is that the current
+production dependency audits report no known vulnerabilities.
