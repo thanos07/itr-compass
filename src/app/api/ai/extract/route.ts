@@ -144,6 +144,7 @@ const responseSchema = z.object({
           "taxesPaid.tdsOther",
           "taxesPaid.tcs",
           "taxesPaid.advanceTax",
+          "taxesPaid.selfAssessmentTax",
         ]),
 
         value: z
