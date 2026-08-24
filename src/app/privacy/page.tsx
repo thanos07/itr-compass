@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 const privacyContact =
   process.env.NEXT_PUBLIC_PRIVACY_CONTACT ||
-  "privacy contact not configured â€” deployment owner must set NEXT_PUBLIC_PRIVACY_CONTACT";
+  "privacy contact not configured — deployment owner must set NEXT_PUBLIC_PRIVACY_CONTACT";
 
 const privacyLastReviewed = "24 August 2026";
 
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
               [
                 HardDrive,
                 "Browser-first workspace",
-                "Structured tax inputs, accepted claims and notes stay in this browserâ€™s localStorage unless you export them or choose encrypted cloud save. Local storage is not encrypted by this application, so avoid shared or untrusted devices.",
+                "Structured tax inputs, accepted claims and notes stay in this browser’s localStorage unless you export them or choose encrypted cloud save. Local storage is not encrypted by this application, so avoid shared or untrusted devices.",
               ],
               [
                 FileLock2,
@@ -376,7 +376,7 @@ export default function PrivacyPage() {
               {[
                 "Access your local structured data by downloading an .itrwork JSON backup.",
                 "Correct entered values or accepted claims directly in the workpaper.",
-                "Erase local workspace data with Reset workspace and clear the siteâ€™s browser storage when needed.",
+                "Erase local workspace data with Reset workspace and clear the site’s browser storage when needed.",
                 "Delete the active encrypted cloud workspace using the private deletion capability in the owner link.",
                 "Withdraw future optional Render, Groq or Neon processing by clearing the relevant consent control.",
                 "Raise an access, correction, erasure, consent or grievance request through the monitored deployment contact below.",
@@ -391,7 +391,7 @@ export default function PrivacyPage() {
                     background: "var(--surface)",
                   }}
                 >
-                  â€¢ {item}
+                  • {item}
                 </p>
               ))}
             </div>
