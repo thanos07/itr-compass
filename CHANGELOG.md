@@ -25,6 +25,7 @@
 - Added document-kind-scoped deterministic extraction for broker summary STCG under section 111A, LTCG under section 112A and explicit VDA income.
 - Added conservative total-only extraction for advance tax, self-assessment tax and TCS so individual payment or statement rows are not treated as aggregates.
 - Added the existing Python parser smoke and XML-hardening suite to CI.
+- Added FastAPI HTTP integration coverage for multipart parsing, consent enforcement, CORS, upload-size limits, encrypted PDFs, unsupported files, filename sanitization and expanded-archive safety limits.
 - Fixed redaction precedence so Indian phone numbers with a `+91` prefix are classified and redacted as phone numbers before the generic 12-digit Aadhaar pattern.
 - Updated README testing instructions to match the enforced quality gates.
 

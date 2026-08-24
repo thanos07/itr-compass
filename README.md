@@ -389,13 +389,17 @@ Run the parser-worker checks:
 python -m py_compile worker/main.py
 ```
 
-From the `worker` directory:
+From the `worker` directory, install the test-only HTTP client dependency and run both parser suites:
 
 ```bash
+pip install -r requirements-test.txt
 python test_smoke.py
+python test_http.py
 ```
 
-GitHub Actions runs the web test suite, evaluation benchmark, lint, production build, Chromium browser E2E smoke tests, parser smoke tests and FastAPI route verification on every push and pull request.
+The HTTP integration suite exercises the FastAPI boundary, including multipart uploads, explicit consent, CORS behavior, filename sanitization, upload limits, encrypted PDFs, unsupported files and expanded-archive safety limits.
+
+GitHub Actions runs the web test suite, evaluation benchmark, lint, production build, Chromium browser E2E smoke tests, parser smoke tests, parser HTTP integration tests and FastAPI route verification on every push and pull request.
 
 See [`EVALUATION.md`](EVALUATION.md) for benchmark scope and limitations.
 
