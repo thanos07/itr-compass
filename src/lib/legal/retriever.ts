@@ -1,4 +1,5 @@
 import { LEGAL_CORPUS, type LegalSource } from "@/lib/legal/corpus";
+import { getLegalSourceFreshness } from "@/lib/legal/governance";
 
 const STOP_WORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "for", "from", "has", "have", "how", "i", "in", "is", "it", "my", "of", "on", "or", "the", "this", "to", "under", "what", "when", "which", "with",
@@ -17,17 +18,32 @@ function sourceText(source: LegalSource) {
 }
 
 /** Lightweight BM25-style retrieval with section/tag boosts and AY filtering. */
-export function retrieveLegalSources(query: string, assessmentYear = "2026-27", limit = 5) {
+export function retrieveLegalSources(
+  query: string,
+  assessmentYear = "2026-27",
+  limit = 5,
+  asOf: Date | string = new Date(),
+) {
+  const eligibleSources = LEGAL_CORPUS
+    .filter((source) => source.assessmentYears.includes(assessmentYear) || source.assessmentYears.includes("all"))
+    .filter((source) => !getLegalSourceFreshness(source, asOf).stale);
+
+  if (eligibleSources.length === 0 || limit <= 0) {
+    return [];
+  }
+
   const queryTokens = tokens(query);
-  const corpusSize = LEGAL_CORPUS.length;
+  const corpusSize = eligibleSources.length;
   const documentFrequency = new Map<string, number>();
 
   for (const token of new Set(queryTokens)) {
-    documentFrequency.set(token, LEGAL_CORPUS.filter((source) => sourceText(source).includes(token)).length);
+    documentFrequency.set(
+      token,
+      eligibleSources.filter((source) => sourceText(source).includes(token)).length,
+    );
   }
 
-  return LEGAL_CORPUS
-    .filter((source) => source.assessmentYears.includes(assessmentYear) || source.assessmentYears.includes("all"))
+  return eligibleSources
     .map((source) => {
       const haystack = sourceText(source);
       const hayTokens = tokens(haystack);
@@ -46,6 +62,6 @@ export function retrieveLegalSources(query: string, assessmentYear = "2026-27", 
       return { source, score };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
+    .slice(0, Math.max(0, Math.floor(limit)))
     .map(({ source, score }) => ({ ...source, retrievalScore: Number(score.toFixed(3)) }));
 }

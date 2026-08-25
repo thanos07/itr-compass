@@ -66,10 +66,87 @@ assert.equal(review.likelyForm.form, "ITR-1");
 assert.equal(review.evidenceStats.accepted, 2);
 assert.equal(review.regimeComparison.newRegime.supported, true);
 
-const section44ada = retrieveLegalSources("Can a social media influencer automatically use section 44ADA?", "2026-27", 3);
-assert.equal(section44ada[0]?.id, "section-44ada");
+const RETRIEVAL_TEST_DATE =
+  "2026-08-25";
 
-const rebate = retrieveLegalSources("section 87A rebate 12 lakh AY 2026-27", "2026-27", 3);
-assert.equal(rebate[0]?.id, "section-87a-ay26");
+const section44ada =
+  retrieveLegalSources(
+    "Can a social media influencer automatically use section 44ADA?",
+    "2026-27",
+    3,
+    RETRIEVAL_TEST_DATE,
+  );
 
-console.log("Agent tools and legal retrieval tests passed.");
+assert.equal(
+  section44ada[0]?.id,
+  "section-44ada",
+);
+
+const rebate =
+  retrieveLegalSources(
+    "section 87A rebate 12 lakh AY 2026-27",
+    "2026-27",
+    3,
+    RETRIEVAL_TEST_DATE,
+  );
+
+assert.equal(
+  rebate[0]?.id,
+  "section-87a-ay26",
+);
+
+/*
+ * Runtime retrieval must fail closed when every
+ * otherwise matching legal source is stale.
+ */
+const staleRetrieval =
+  retrieveLegalSources(
+    "section 44ADA presumptive profession",
+    "2026-27",
+    5,
+    "2099-01-01",
+  );
+
+assert.deepEqual(
+  staleRetrieval,
+  [],
+  "Stale legal sources must not be returned at runtime.",
+);
+
+/*
+ * Unknown assessment years must not fall through
+ * to AY-specific sources.
+ */
+const wrongAssessmentYear =
+  retrieveLegalSources(
+    "section 87A rebate",
+    "2099-00",
+    5,
+    RETRIEVAL_TEST_DATE,
+  );
+
+assert.deepEqual(
+  wrongAssessmentYear,
+  [],
+  "AY-specific sources must not leak into another assessment year.",
+);
+
+/*
+ * Non-positive limits should return no sources.
+ */
+const zeroLimit =
+  retrieveLegalSources(
+    "section 87A",
+    "2026-27",
+    0,
+    RETRIEVAL_TEST_DATE,
+  );
+
+assert.deepEqual(
+  zeroLimit,
+  [],
+);
+
+console.log(
+  "Agent tools and legal retrieval tests passed.",
+);
