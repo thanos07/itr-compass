@@ -60,3 +60,20 @@ This dev-only advisory will be reassessed when Drizzle Kit removes or upgrades t
 affected dependency chain. The project should not describe itself as having
 "zero vulnerabilities overall"; the accurate statement is that the current
 production dependency audits report no known vulnerabilities.
+
+## Request-boundary and provider hardening (v0.4.0)
+
+The public JSON routes now apply bounded request handling and conservative provider-failure behavior.
+
+- AI extraction, agent and encrypted-cloud JSON requests are read through bounded streams. A missing or understated `Content-Length` cannot bypass the configured application-level body limit.
+- AI extraction defaults to a 200,000-byte request limit and caps configuration at 1,000,000 bytes.
+- Agent requests default to 1,500,000 bytes and cap configuration at 5,000,000 bytes.
+- Encrypted cloud requests default to a 1,500,000-byte payload limit and cap configuration at 5,000,000 bytes.
+- Public-route throttles use conservative configuration fallbacks and bounded per-process bucket cleanup.
+- Platform forwarding headers are preferred when resolving the client bucket key; generic `x-forwarded-for` is not trusted from its left-most entry.
+- Sensitive-data redaction is centralized into browser-preview, AI-provider and agent-payload profiles.
+- Labelled bank-account numbers are removed before AI extraction while large legitimate rupee amounts remain available to the extractor.
+- Groq agent and extraction failures are translated into controlled local HTTP responses. Provider-controlled error bodies are not returned to clients or copied into application error logs; only the provider status is retained for failure observability.
+- Legal retrieval fails closed when no assessment-year-matching source satisfies runtime freshness governance. In that case the browser explains that legal guidance is paused and that no Groq request was sent.
+
+These are application-level controls, not complete denial-of-service protection. The current rate limiters remain in-memory and per-instance. A larger public deployment should use a shared distributed limiter and platform-level abuse controls.

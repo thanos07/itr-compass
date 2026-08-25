@@ -259,7 +259,9 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`, API keys or data
 | `GROQ_MODEL` | no | Extraction model |
 | `GROQ_AGENT_MODEL` | no | Agent model |
 | `AI_REQUESTS_PER_MINUTE` | no | Best-effort extraction throttle |
+| `MAX_AI_PAYLOAD_BYTES` | no | Maximum AI extraction request payload |
 | `AGENT_REQUESTS_PER_MINUTE` | no | Best-effort agent throttle |
+| `MAX_AGENT_PAYLOAD_BYTES` | no | Maximum agent request payload |
 | `CLOUD_REQUESTS_PER_MINUTE` | no | Best-effort cloud API throttle |
 | `MAX_CLOUD_PAYLOAD_BYTES` | no | Maximum encrypted cloud payload |
 | `CSP_REPORT_ONLY` | no | Enables report-only CSP testing when set to `true` |
