@@ -316,6 +316,136 @@ async function runRouteSecurityRegression() {
     console.log(
       "AI extraction route security regression test passed.",
     );
+
+    /*
+     * Privacy regression:
+     *
+     * Explicitly labelled account numbers must be removed
+     * before document text reaches Groq, while legitimate
+     * large tax amounts must remain available for extraction.
+     */
+    let providerRequestBody = "";
+
+    globalThis.fetch =
+      (async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ) => {
+        if (
+          typeof init?.body === "string"
+        ) {
+          providerRequestBody =
+            init.body;
+        } else if (
+          input instanceof Request
+        ) {
+          providerRequestBody =
+            await input.clone().text();
+        }
+
+        return new Response(
+          JSON.stringify({
+            id: "chatcmpl-redaction-test",
+            object: "chat.completion",
+            created: 0,
+            model:
+              "openai/gpt-oss-20b",
+
+            choices: [
+              {
+                index: 0,
+
+                message: {
+                  role: "assistant",
+
+                  content:
+                    JSON.stringify({
+                      summary:
+                        "No supported claims returned by the test provider.",
+                      claims: [],
+                      unresolved: [],
+                    }),
+                },
+
+                finish_reason: "stop",
+              },
+            ],
+          }),
+          {
+            status: 200,
+
+            headers: {
+              "content-type":
+                "application/json",
+            },
+          },
+        );
+      }) as typeof fetch;
+
+    const privacyRequest =
+      new Request(
+        "http://localhost/api/ai/extract",
+        {
+          method: "POST",
+
+          headers: {
+            "content-type":
+              "application/json",
+
+            /*
+             * Use a distinct bucket for this request so
+             * rate-limit state cannot affect the assertion.
+             */
+            "x-real-ip":
+              "203.0.113.77",
+          },
+
+          body: JSON.stringify({
+            processingConsent: true,
+
+            documentType:
+              "bank statement",
+
+            text:
+              "Bank account number 12345678901234. Gross salary 125000000.",
+          }),
+        },
+      );
+
+    const privacyResponse =
+      await POST(privacyRequest);
+
+    assert.equal(
+      privacyResponse.status,
+      200,
+      "A valid redacted extraction request should still complete.",
+    );
+
+    assert.ok(
+      providerRequestBody.includes(
+        "[ACCOUNT NUMBER REDACTED]",
+      ),
+      "The provider payload must contain the account-number redaction marker.",
+    );
+
+    assert.equal(
+      providerRequestBody.includes(
+        "12345678901234",
+      ),
+      false,
+      "The raw account number must not be sent to Groq.",
+    );
+
+    assert.ok(
+      providerRequestBody.includes(
+        "125000000",
+      ),
+      "A legitimate large rupee amount must not be removed by account-number redaction.",
+    );
+
+    console.log(
+      "AI extraction account-number redaction regression test passed.",
+    );
   } finally {
     if (originalApiKey === undefined) {
       delete process.env.GROQ_API_KEY;

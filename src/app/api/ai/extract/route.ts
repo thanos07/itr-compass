@@ -22,6 +22,18 @@ function jsonResponse(body: unknown, init?: ResponseInit) {
  */
 function redactSensitive(value: string): string {
   return value
+    /*
+     * Bank/account numbers.
+     *
+     * Keep this label-aware rather than redacting every
+     * 9-18 digit number: large rupee amounts can legitimately
+     * contain that many digits and must remain extractable.
+     */
+    .replace(
+      /\b((?:bank\s+)?(?:a\/c|account)\s*(?:no\.?|number)?\s*[:#-]?\s*)\d{9,18}\b/gi,
+      "$1[ACCOUNT NUMBER REDACTED]",
+    )
+
     // PAN
     .replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/gi, "[PAN REDACTED]")
     // Aadhaar with or without spaces
@@ -228,6 +240,7 @@ export async function POST(request: Request) {
   try {
     const client = new Groq({
       apiKey: process.env.GROQ_API_KEY,
+      fetch: globalThis.fetch,
     });
 
     const completion =
