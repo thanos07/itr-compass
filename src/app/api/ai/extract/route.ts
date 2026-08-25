@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { redactForAiProvider } from "@/lib/security/redaction";
 import { responseSchema } from "./schema";
 
 export const runtime = "nodejs";
@@ -14,42 +15,6 @@ function jsonResponse(body: unknown, init?: ResponseInit) {
   const response = NextResponse.json(body, init);
   response.headers.set("Cache-Control", "no-store");
   return response;
-}
-
-/**
- * Pattern-based risk reduction only.
- * This cannot guarantee removal of every possible identifier.
- */
-function redactSensitive(value: string): string {
-  return value
-    /*
-     * Bank/account numbers.
-     *
-     * Keep this label-aware rather than redacting every
-     * 9-18 digit number: large rupee amounts can legitimately
-     * contain that many digits and must remain extractable.
-     */
-    .replace(
-      /\b((?:bank\s+)?(?:a\/c|account)\s*(?:no\.?|number)?\s*[:#-]?\s*)\d{9,18}\b/gi,
-      "$1[ACCOUNT NUMBER REDACTED]",
-    )
-
-    // PAN
-    .replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/gi, "[PAN REDACTED]")
-    // Aadhaar with or without spaces
-    .replace(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, "[AADHAAR REDACTED]")
-    // Email
-    .replace(
-      /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
-      "[EMAIL REDACTED]",
-    )
-    // Indian mobile numbers
-    .replace(
-      /(?:\+91[\s-]?)?[6-9]\d{9}\b/g,
-      "[PHONE REDACTED]",
-    )
-    // IFSC
-    .replace(/\b[A-Z]{4}0[A-Z0-9]{6}\b/gi, "[IFSC REDACTED]");
 }
 
 const requestBuckets = new Map<
@@ -235,7 +200,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const redactedText = redactSensitive(parsed.data.text);
+  const redactedText = redactForAiProvider(parsed.data.text);
 
   try {
     const client = new Groq({

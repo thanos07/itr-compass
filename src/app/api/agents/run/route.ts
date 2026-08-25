@@ -10,6 +10,9 @@ import {
   type AgentWorkspaceSnapshot,
 } from "@/lib/agents/tools";
 import { retrieveLegalSources } from "@/lib/legal/retriever";
+import {
+  redactForAgentPayload as redactSensitive,
+} from "@/lib/security/redaction";
 import type { AgentKey } from "@/lib/workspace-types";
 
 export const runtime = "nodejs";
@@ -474,45 +477,6 @@ const modelOutputSchema = z.object({
 
 const modelOutputJsonSchema =
   z.toJSONSchema(modelOutputSchema);
-
-function redactSensitive(text: string): string {
-  return text
-    // PAN
-    .replace(
-      /\b[A-Z]{5}[0-9]{4}[A-Z]\b/gi,
-      "[PAN REDACTED]",
-    )
-
-    // Aadhaar with optional spaces or dashes
-    .replace(
-      /\b(?:\d[ -]?){11}\d\b/g,
-      "[AADHAAR REDACTED]",
-    )
-
-    // IFSC
-    .replace(
-      /\b[A-Z]{4}0[A-Z0-9]{6}\b/gi,
-      "[IFSC REDACTED]",
-    )
-
-    // Email
-    .replace(
-      /\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g,
-      "[EMAIL REDACTED]",
-    )
-
-    // Indian mobile numbers
-    .replace(
-      /(?<!\d)(?:\+91[- ]?)?[6-9]\d{9}(?!\d)/g,
-      "[PHONE REDACTED]",
-    )
-
-    // Long account-like numbers
-    .replace(
-      /\b\d{9,18}\b/g,
-      "[LONG NUMBER REDACTED]",
-    );
-}
 
 function economySnapshot(
   snapshot: AgentWorkspaceSnapshot,

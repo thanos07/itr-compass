@@ -1,6 +1,7 @@
 "use client";
 
 import Papa from "papaparse";
+import { redactBrowserPreview } from "@/lib/security/redaction";
 import type { ParsedDocument, SourceClaim } from "@/lib/workspace-types";
 
 const MAX_BROWSER_TEXT = 800_000;
@@ -11,14 +12,7 @@ const ITR_TOKEN = /\bitr(?:[-\s]?[1-7])?\b/;
 const ISIN_TOKEN = /\bisin\b/;
 
 export function redactSensitive(text: string) {
-  return text
-    .replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/g, "[PAN REDACTED]")
-    // Redact Indian phone numbers before the generic 12-digit Aadhaar pattern.
-    // Otherwise "+91 9876543210" can be consumed as twelve Aadhaar-like digits.
-    .replace(/(?<!\d)(?:\+91[- ]?)?[6-9]\d{9}(?!\d)/g, "[PHONE REDACTED]")
-    .replace(/\b(?:\d[ -]?){12}\b/g, "[AADHAAR REDACTED]")
-    .replace(/\b[A-Z]{4}0[A-Z0-9]{6}\b/g, "[IFSC REDACTED]")
-    .replace(/\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, "[EMAIL REDACTED]");
+  return redactBrowserPreview(text);
 }
 
 export function detectKind(text: string, fileName: string): ParsedDocument["kind"] {
