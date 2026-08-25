@@ -224,6 +224,9 @@ async function runRouteSecurityRegression() {
   const originalFetch =
     globalThis.fetch;
 
+  const originalConsoleError =
+    console.error;
+
   let outboundFetchAttempted =
     false;
 
@@ -514,6 +517,184 @@ async function runRouteSecurityRegression() {
     console.log(
       "AI extraction account-number redaction regression test passed.",
     );
+
+    /*
+     * Provider error matrix.
+     *
+     * Provider-controlled error bodies must never reach
+     * the client or application logs.
+     */
+    const providerCases = [
+      {
+        providerStatus: 429,
+        expectedStatus: 429,
+        expectedMessage:
+          /rate limit/i,
+      },
+      {
+        providerStatus: 401,
+        expectedStatus: 503,
+        expectedMessage:
+          /authentication failed/i,
+      },
+      {
+        providerStatus: 403,
+        expectedStatus: 503,
+        expectedMessage:
+          /authentication failed/i,
+      },
+      {
+        providerStatus: 500,
+        expectedStatus: 502,
+        expectedMessage:
+          /temporarily unavailable/i,
+      },
+    ] as const;
+
+    for (
+      const providerCase
+      of providerCases
+    ) {
+      const secret =
+        `TEST_EXTRACTION_PROVIDER_SECRET_${providerCase.providerStatus}`;
+
+      const providerLogs: string[] =
+        [];
+
+      console.error =
+        (...args: unknown[]) => {
+          providerLogs.push(
+            args
+              .map((value) =>
+                String(value),
+              )
+              .join(" "),
+          );
+        };
+
+      globalThis.fetch =
+        (async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                message: secret,
+                type:
+                  "test_provider_error",
+              },
+            }),
+            {
+              status:
+                providerCase.providerStatus,
+
+              headers: {
+                "content-type":
+                  "application/json",
+              },
+            },
+          )) as typeof fetch;
+
+      const providerRequest =
+        new Request(
+          "http://localhost/api/ai/extract",
+          {
+            method: "POST",
+
+            headers: {
+              "content-type":
+                "application/json",
+
+              /*
+               * Keep every provider case in its own
+               * application rate-limit bucket.
+               */
+              "x-real-ip":
+                `203.0.113.${providerCase.providerStatus === 429
+                  ? 130
+                  : providerCase.providerStatus === 401
+                    ? 131
+                    : providerCase.providerStatus === 403
+                      ? 132
+                      : 133}`,
+            },
+
+            body: JSON.stringify({
+              processingConsent: true,
+
+              documentType:
+                "generic tax document",
+
+              text:
+                "Gross salary explicitly reported as 500000 rupees.",
+            }),
+          },
+        );
+
+      const providerResponse =
+        await POST(providerRequest);
+
+      assert.equal(
+        providerResponse.status,
+        providerCase.expectedStatus,
+        `Provider ${providerCase.providerStatus} returned an unexpected local status.`,
+      );
+
+      assert.equal(
+        providerResponse.headers.get(
+          "cache-control",
+        ),
+        "no-store",
+      );
+
+      const providerBody =
+        (await providerResponse.json()) as {
+          error?: unknown;
+        };
+
+      assert.equal(
+        typeof providerBody.error,
+        "string",
+      );
+
+      assert.match(
+        providerBody.error as string,
+        providerCase.expectedMessage,
+      );
+
+      assert.equal(
+        (
+          providerBody.error as string
+        ).includes(secret),
+        false,
+        "Provider-controlled extraction errors must not reach the client.",
+      );
+
+      assert.equal(
+        providerLogs.some(
+          (line) =>
+            line.includes(secret),
+        ),
+        false,
+        "Provider-controlled extraction errors must not reach server logs.",
+      );
+
+      assert.equal(
+        providerLogs.some(
+          (line) =>
+            line.includes(
+              `status=${providerCase.providerStatus}`,
+            ),
+        ),
+        true,
+        "The safe provider status should remain observable in server logs.",
+      );
+    }
+
+    console.error =
+      originalConsoleError;
+
+    console.log(
+      "AI extraction provider-error regressions passed.",
+    );
   } finally {
     if (originalApiKey === undefined) {
       delete process.env.GROQ_API_KEY;
@@ -533,6 +714,9 @@ async function runRouteSecurityRegression() {
 
     globalThis.fetch =
       originalFetch;
+
+    console.error =
+      originalConsoleError;
   }
 }
 

@@ -143,6 +143,21 @@ function resolveModel(): string {
   return model;
 }
 
+function getErrorStatus(
+  error: unknown,
+): number | undefined {
+  if (
+    error &&
+    typeof error === "object" &&
+    "status" in error &&
+    typeof error.status === "number"
+  ) {
+    return error.status;
+  }
+
+  return undefined;
+}
+
 const requestSchema = z.object({
   processingConsent: z.literal(true),
   documentType: z
@@ -323,9 +338,18 @@ export async function POST(request: Request) {
     return jsonResponse(output.data);
   } catch (error) {
     const status =
-      error instanceof Groq.APIError
-        ? error.status
-        : undefined;
+      getErrorStatus(error);
+
+    /*
+     * Log only the provider status.
+     *
+     * Provider exception messages can contain response
+     * bodies or other provider-controlled content, so
+     * they must never be copied into application logs.
+     */
+    console.error(
+      `[Groq extraction] request failed status=${status ?? "unknown"}`,
+    );
 
     if (status === 429) {
       return jsonResponse(
@@ -337,7 +361,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (status === 400 || status === 422) {
+    if (
+      status === 400 ||
+      status === 422
+    ) {
       return jsonResponse(
         {
           error:
@@ -347,12 +374,18 @@ export async function POST(request: Request) {
       );
     }
 
-    console.error(
-      "[Groq extraction] request failed",
-      error instanceof Error
-        ? error.message
-        : "Unknown provider error",
-    );
+    if (
+      status === 401 ||
+      status === 403
+    ) {
+      return jsonResponse(
+        {
+          error:
+            "Groq authentication failed. Check GROQ_API_KEY.",
+        },
+        { status: 503 },
+      );
+    }
 
     return jsonResponse(
       {
