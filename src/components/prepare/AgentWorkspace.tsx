@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { describeAgentApiError } from "@/lib/agents/client-errors";
 import type { AgentWorkspaceSnapshot } from "@/lib/agents/tools";
 import { useWorkspace } from "@/lib/workspace-store";
 import type {
@@ -293,12 +294,20 @@ export default function AgentWorkspace() {
       },
     );
 
-    const data = await response.json();
+    const data: unknown =
+      await response
+        .json()
+        .catch(() => null);
 
     if (!response.ok) {
       throw new Error(
-        data.error ||
-          `${agent} agent failed.`,
+        describeAgentApiError({
+          agent,
+          status: response.status,
+          payload: data,
+          assessmentYear:
+            snapshot.assessmentYear,
+        }),
       );
     }
 

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { describeAgentApiError } from "@/lib/agents/client-errors";
 import { retrieveLegalSources } from "@/lib/legal/retriever";
 import { runIntakeTools, runReconciliationTools, runReviewTools, type AgentWorkspaceSnapshot } from "@/lib/agents/tools";
 import { createEmptyWorkspace } from "@/lib/workspace-types";
@@ -147,6 +148,97 @@ assert.deepEqual(
   [],
 );
 
+/*
+ * Client UX must distinguish a legal-corpus freshness
+ * failure from a normal Groq/provider failure.
+ */
+const staleLegalMessage =
+  describeAgentApiError({
+    agent: "legal",
+    status: 503,
+
+    payload: {
+      error:
+        "No current 2026-27 legal sources passed freshness checks. Legal guidance is temporarily unavailable; verify the official Income Tax sources before relying on this feature.",
+    },
+
+    assessmentYear:
+      "2026-27",
+  });
+
+assert.match(
+  staleLegalMessage,
+  /temporarily paused/i,
+);
+
+assert.match(
+  staleLegalMessage,
+  /2026-27/,
+);
+
+assert.match(
+  staleLegalMessage,
+  /No Groq request was sent/i,
+);
+
+assert.match(
+  staleLegalMessage,
+  /official-source corpus/i,
+);
+
+/*
+ * Other legal 503 failures must retain their real
+ * controlled API message rather than being mislabeled
+ * as a source-freshness problem.
+ */
+assert.equal(
+  describeAgentApiError({
+    agent: "legal",
+    status: 503,
+
+    payload: {
+      error:
+        "Groq authentication failed. Check GROQ_API_KEY.",
+    },
+
+    assessmentYear:
+      "2026-27",
+  }),
+  "Groq authentication failed. Check GROQ_API_KEY.",
+);
+
+/*
+ * Existing controlled errors for other agents should
+ * pass through unchanged.
+ */
+assert.equal(
+  describeAgentApiError({
+    agent: "review",
+    status: 429,
+
+    payload: {
+      error:
+        "Groq's free-tier rate limit was reached. Wait briefly and try again.",
+    },
+
+    assessmentYear:
+      "2026-27",
+  }),
+  "Groq's free-tier rate limit was reached. Wait briefly and try again.",
+);
+
+assert.equal(
+  describeAgentApiError({
+    agent: "review",
+    status: 500,
+    payload: null,
+
+    assessmentYear:
+      "2026-27",
+  }),
+  "review agent failed.",
+);
+
 console.log(
-  "Agent tools and legal retrieval tests passed.",
+  "Agent tools, legal retrieval and client-error tests passed.",
 );
