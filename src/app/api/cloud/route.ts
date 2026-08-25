@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { encryptedWorkspaces } from "@/db/schema";
 import { getDb } from "@/lib/db";
+import { readJsonBodyWithLimit } from "@/lib/security/request-body";
 
 export const runtime = "nodejs";
 
@@ -66,17 +67,47 @@ function jsonResponse(body: unknown, init?: ResponseInit) {
 
 export async function POST(request: Request) {
   if (!allowRequest(request)) return jsonResponse({ error: "Cloud request limit reached. Wait one minute and try again." }, { status: 429 });
-  const contentLength = Number(request.headers.get("content-length") || 0);
-  if (contentLength > configuredBodyLimit()) return jsonResponse({ error: "Cloud request is too large." }, { status: 413 });
-  const rawBody = await request.text().catch(() => "");
-  if (Buffer.byteLength(rawBody, "utf8") > configuredBodyLimit()) return jsonResponse({ error: "Cloud request is too large." }, { status: 413 });
-  const body = rawBody ? (() => { try { return JSON.parse(rawBody); } catch { return null; } })() : null;
+  const bodyResult =
+    await readJsonBodyWithLimit(
+      request,
+      configuredBodyLimit(),
+    );
+
+  if (
+    !bodyResult.ok &&
+    bodyResult.reason === "too-large"
+  ) {
+    return jsonResponse(
+      {
+        error:
+          "Cloud request is too large.",
+      },
+      {
+        status: 413,
+      },
+    );
+  }
+
+  /*
+   * Preserve the route's existing malformed/empty JSON behavior:
+   * invalid JSON continues downstream as null and is ultimately
+   * handled as an invalid/unknown action when cloud storage exists.
+   */
+  const body =
+    bodyResult.ok
+      ? bodyResult.value
+      : null;
 
   const db = getDb();
   if (!db) return jsonResponse({ error: "Cloud save is not configured." }, { status: 503 });
 
   await db.delete(encryptedWorkspaces).where(lt(encryptedWorkspaces.expiresAt, new Date())).catch(() => undefined);
-  const action = body?.action;
+  const action =
+    body &&
+    typeof body === "object" &&
+    "action" in body
+      ? (body as { action?: unknown }).action
+      : undefined;
   const maxBytes = Number(process.env.MAX_CLOUD_PAYLOAD_BYTES || 1_500_000);
 
   if (action === "create") {
