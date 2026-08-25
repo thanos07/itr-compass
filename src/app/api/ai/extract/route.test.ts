@@ -318,6 +318,74 @@ async function runRouteSecurityRegression() {
     );
 
     /*
+     * Actual-body-size regression.
+     *
+     * A request without Content-Length must still receive
+     * 413 when the bytes actually read exceed the limit.
+     */
+    process.env.MAX_AI_PAYLOAD_BYTES =
+      "128";
+
+    const undeclaredOversizeRequest =
+      new Request(
+        "http://localhost/api/ai/extract",
+        {
+          method: "POST",
+
+          headers: {
+            "content-type":
+              "application/json",
+
+            "x-real-ip":
+              "203.0.113.88",
+          },
+
+          body: JSON.stringify({
+            processingConsent: true,
+
+            documentType:
+              "generic tax document",
+
+            text:
+              "Gross salary " +
+              "1".repeat(240),
+          }),
+        },
+      );
+
+    assert.equal(
+      undeclaredOversizeRequest.headers.has(
+        "content-length",
+      ),
+      false,
+      "Regression request must omit Content-Length.",
+    );
+
+    const undeclaredOversizeResponse =
+      await POST(
+        undeclaredOversizeRequest,
+      );
+
+    assert.equal(
+      undeclaredOversizeResponse.status,
+      413,
+      "Actual request bytes must be limited even without Content-Length.",
+    );
+
+    assert.equal(
+      outboundFetchAttempted,
+      false,
+      "Groq must not be contacted for an actually oversized request.",
+    );
+
+    process.env.MAX_AI_PAYLOAD_BYTES =
+      "200000";
+
+    console.log(
+      "AI extraction actual-body-size regression test passed.",
+    );
+
+    /*
      * Privacy regression:
      *
      * Explicitly labelled account numbers must be removed

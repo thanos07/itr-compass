@@ -27,6 +27,9 @@ async function runTest() {
   const originalGroqModel =
     process.env.GROQ_MODEL;
 
+  const originalMaxAgentPayload =
+    process.env.MAX_AGENT_PAYLOAD_BYTES;
+
   const originalRetrievedDates =
     LEGAL_CORPUS.map(
       (source) => source.retrievedAt,
@@ -114,6 +117,69 @@ async function runTest() {
         );
       }) as typeof fetch;
 
+    /*
+     * Actual-body-size regression.
+     *
+     * The agent route must enforce the bytes actually
+     * received even when Content-Length is absent.
+     */
+    process.env.MAX_AGENT_PAYLOAD_BYTES =
+      "128";
+
+    const oversizedRequest =
+      new Request(
+        "http://localhost/api/agents/run",
+        {
+          method: "POST",
+
+          headers: {
+            "content-type":
+              "application/json",
+
+            "x-real-ip":
+              "203.0.113.99",
+          },
+
+          body: JSON.stringify({
+            processingConsent: true,
+            agent: "review",
+            filler: "x".repeat(300),
+          }),
+        },
+      );
+
+    assert.equal(
+      oversizedRequest.headers.has(
+        "content-length",
+      ),
+      false,
+      "Agent regression request must omit Content-Length.",
+    );
+
+    const oversizedResponse =
+      await POST(oversizedRequest);
+
+    assert.equal(
+      oversizedResponse.status,
+      413,
+      "Agent request bytes must be limited even without Content-Length.",
+    );
+
+    assert.equal(
+      outboundFetchAttempted,
+      false,
+      "Groq must not be contacted for an oversized agent request.",
+    );
+
+    restoreEnvironment(
+      "MAX_AGENT_PAYLOAD_BYTES",
+      originalMaxAgentPayload,
+    );
+
+    console.log(
+      "Agent actual-body-size regression test passed.",
+    );
+
     const response =
       await POST(request);
 
@@ -184,6 +250,11 @@ async function runTest() {
     restoreEnvironment(
       "GROQ_MODEL",
       originalGroqModel,
+    );
+
+    restoreEnvironment(
+      "MAX_AGENT_PAYLOAD_BYTES",
+      originalMaxAgentPayload,
     );
 
     globalThis.fetch =

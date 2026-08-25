@@ -10,6 +10,7 @@ import {
   type AgentWorkspaceSnapshot,
 } from "@/lib/agents/tools";
 import { retrieveLegalSources } from "@/lib/legal/retriever";
+import { readJsonBodyWithLimit } from "@/lib/security/request-body";
 import {
   redactForAgentPayload as redactSensitive,
 } from "@/lib/security/redaction";
@@ -136,19 +137,24 @@ function allowRequest(request: Request): boolean {
   return true;
 }
 
-function requestBodyIsTooLarge(request: Request): boolean {
-  const maximum = resolvePositiveInteger(
+function getMaxAgentBodyBytes(): number {
+  return resolvePositiveInteger(
     process.env.MAX_AGENT_PAYLOAD_BYTES,
     DEFAULT_MAX_AGENT_BODY_BYTES,
     5_000_000,
   );
+}
 
+function requestBodyIsTooLarge(request: Request): boolean {
   const contentLength = Number.parseInt(
     request.headers.get("content-length") ?? "",
     10,
   );
 
-  return Number.isFinite(contentLength) && contentLength > maximum;
+  return (
+    Number.isFinite(contentLength) &&
+    contentLength > getMaxAgentBodyBytes()
+  );
 }
 
 function resolveGroqModel(): string {
@@ -658,12 +664,40 @@ export async function POST(
     );
   }
 
-  const body = await request
-    .json()
-    .catch(() => null);
+  const body =
+    await readJsonBodyWithLimit(
+      request,
+      getMaxAgentBodyBytes(),
+    );
+
+  if (!body.ok) {
+    if (body.reason === "too-large") {
+      return jsonResponse(
+        {
+          error:
+            "The agent request is too large.",
+        },
+        {
+          status: 413,
+        },
+      );
+    }
+
+    return jsonResponse(
+      {
+        error:
+          "Invalid or oversized agent request.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 
   const parsed =
-    requestSchema.safeParse(body);
+    requestSchema.safeParse(
+      body.value,
+    );
 
   if (!parsed.success) {
     return jsonResponse(

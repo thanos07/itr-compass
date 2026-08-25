@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { readJsonBodyWithLimit } from "@/lib/security/request-body";
 import { redactForAiProvider } from "@/lib/security/redaction";
 import { responseSchema } from "./schema";
 
@@ -179,8 +180,33 @@ export async function POST(request: Request) {
     );
   }
 
-  const requestBody = await request.json().catch(() => null);
-  const parsed = requestSchema.safeParse(requestBody);
+  const requestBody =
+    await readJsonBodyWithLimit(
+      request,
+      getMaxRequestBodyBytes(),
+    );
+
+  if (!requestBody.ok) {
+    if (requestBody.reason === "too-large") {
+      return jsonResponse(
+        {
+          error:
+            "The AI extraction request is too large.",
+        },
+        { status: 413 },
+      );
+    }
+
+    return jsonResponse(
+      { error: "Invalid extraction request." },
+      { status: 400 },
+    );
+  }
+
+  const parsed =
+    requestSchema.safeParse(
+      requestBody.value,
+    );
 
   if (!parsed.success) {
     return jsonResponse(
