@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 
 const DEFAULT_MODEL = "openai/gpt-oss-20b";
 const MAX_TEXT_LENGTH = 30_000;
+const DEFAULT_MAX_AI_BODY_BYTES = 200_000;
 
 function jsonResponse(body: unknown, init?: ResponseInit) {
   const response = NextResponse.json(body, init);
@@ -55,21 +56,72 @@ function getRateLimit(): number {
     : 5;
 }
 
-function allowRequest(request: Request): boolean {
+function getMaxRequestBodyBytes(): number {
+  const configured = Number.parseInt(
+    process.env.MAX_AI_PAYLOAD_BYTES ?? "",
+    10,
+  );
+
+  return Number.isFinite(configured) &&
+    configured > 0
+    ? Math.min(configured, 1_000_000)
+    : DEFAULT_MAX_AI_BODY_BYTES;
+}
+
+function requestBodyIsTooLarge(
+  request: Request,
+): boolean {
+  const contentLength = Number.parseInt(
+    request.headers.get("content-length") ?? "",
+    10,
+  );
+
+  return (
+    Number.isFinite(contentLength) &&
+    contentLength > getMaxRequestBodyBytes()
+  );
+}
+
+function getClientIp(request: Request): string {
   /*
-   * Suitable for local development and best-effort limiting.
-   * Replace this with a platform-trusted IP resolver and a distributed
-   * limiter before larger public deployment.
+   * Prefer Vercel/platform-provided forwarding information.
+   *
+   * For the generic x-forwarded-for fallback, use the
+   * right-most entry rather than trusting the client-controlled
+   * left-most value.
    */
-  const forwarded = request.headers
-    .get("x-forwarded-for")
+  const vercelForwarded = request.headers
+    .get("x-vercel-forwarded-for")
     ?.split(",")[0]
     ?.trim();
 
-  const key =
-    forwarded ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
+  if (vercelForwarded) {
+    return vercelForwarded;
+  }
+
+  const realIp =
+    request.headers.get("x-real-ip")?.trim();
+
+  if (realIp) {
+    return realIp;
+  }
+
+  const forwardedEntries = request.headers
+    .get("x-forwarded-for")
+    ?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return forwardedEntries?.at(-1) ?? "unknown";
+}
+
+function allowRequest(request: Request): boolean {
+  /*
+   * Suitable for local development and best-effort limiting.
+   * A distributed limiter is still preferable for larger
+   * multi-instance public deployment.
+   */
+  const key = getClientIp(request);
 
   const minute = Math.floor(Date.now() / 60_000);
   const limit = getRateLimit();
@@ -123,6 +175,16 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (requestBodyIsTooLarge(request)) {
+    return jsonResponse(
+      {
+        error:
+          "The AI extraction request is too large.",
+      },
+      { status: 413 },
+    );
+  }
+
   if (!allowRequest(request)) {
     return jsonResponse(
       {

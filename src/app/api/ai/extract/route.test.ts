@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { POST } from "./route";
 import { responseSchema } from "./schema";
 
 const supportedTaxPaymentFields = [
@@ -211,4 +212,135 @@ for (
 
 console.log(
   "AI extraction response-schema regression tests passed.",
+);
+
+async function runRouteSecurityRegression() {
+  const originalApiKey =
+    process.env.GROQ_API_KEY;
+
+  const originalMaxPayload =
+    process.env.MAX_AI_PAYLOAD_BYTES;
+
+  const originalFetch =
+    globalThis.fetch;
+
+  let outboundFetchAttempted =
+    false;
+
+  try {
+    process.env.GROQ_API_KEY =
+      "test-only-key";
+
+    process.env.MAX_AI_PAYLOAD_BYTES =
+      "200000";
+
+    globalThis.fetch =
+      (async () => {
+        outboundFetchAttempted =
+          true;
+
+        throw new Error(
+          "Unexpected outbound network request.",
+        );
+      }) as typeof fetch;
+
+    /*
+     * The body is deliberately malformed.
+     *
+     * Because Content-Length exceeds the configured
+     * limit, the route must return 413 before attempting
+     * JSON parsing or contacting Groq.
+     */
+    const request =
+      new Request(
+        "http://localhost/api/ai/extract",
+        {
+          method: "POST",
+
+          headers: {
+            "content-type":
+              "application/json",
+
+            "content-length":
+              "200001",
+
+            /*
+             * The left-most generic forwarded value
+             * should not be treated as trusted client IP.
+             */
+            "x-forwarded-for":
+              "198.51.100.50, 203.0.113.20",
+          },
+
+          body: "{",
+        },
+      );
+
+    const response =
+      await POST(request);
+
+    assert.equal(
+      response.status,
+      413,
+      "Oversized AI extraction requests must be rejected.",
+    );
+
+    assert.equal(
+      outboundFetchAttempted,
+      false,
+      "Groq must not be contacted for oversized requests.",
+    );
+
+    assert.equal(
+      response.headers.get(
+        "cache-control",
+      ),
+      "no-store",
+    );
+
+    const body =
+      (await response.json()) as {
+        error?: unknown;
+      };
+
+    assert.equal(
+      typeof body.error,
+      "string",
+    );
+
+    assert.match(
+      body.error as string,
+      /too large/i,
+    );
+
+    console.log(
+      "AI extraction route security regression test passed.",
+    );
+  } finally {
+    if (originalApiKey === undefined) {
+      delete process.env.GROQ_API_KEY;
+    } else {
+      process.env.GROQ_API_KEY =
+        originalApiKey;
+    }
+
+    if (
+      originalMaxPayload === undefined
+    ) {
+      delete process.env.MAX_AI_PAYLOAD_BYTES;
+    } else {
+      process.env.MAX_AI_PAYLOAD_BYTES =
+        originalMaxPayload;
+    }
+
+    globalThis.fetch =
+      originalFetch;
+  }
+}
+
+runRouteSecurityRegression().catch(
+  (error) => {
+    console.error(error);
+    process.exitCode = 1;
+  },
 );
