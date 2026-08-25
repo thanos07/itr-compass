@@ -31,18 +31,146 @@ const updateSchema = z.object({
 const loadSchema = z.object({ action: z.literal("load"), id: z.string().min(8).max(40) });
 const deleteSchema = z.object({ action: z.literal("delete"), id: z.string().min(8).max(40), deleteToken: token });
 
-const buckets = new Map<string, { count: number; resetAt: number }>();
-function allowRequest(request: Request) {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const key = forwarded || request.headers.get("x-real-ip") || "unknown";
+const DEFAULT_CLOUD_REQUESTS_PER_MINUTE = 12;
+const MAX_CLOUD_REQUESTS_PER_MINUTE = 60;
+
+const DEFAULT_MAX_CLOUD_PAYLOAD_BYTES =
+  1_500_000;
+
+const MAX_CONFIGURED_CLOUD_PAYLOAD_BYTES =
+  5_000_000;
+
+const CLOUD_BODY_ENVELOPE_BYTES =
+  16_384;
+
+const buckets = new Map<
+  string,
+  {
+    count: number;
+    resetAt: number;
+  }
+>();
+
+function resolveConfiguredInteger(
+  value: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(
+    Math.max(
+      Math.floor(parsed),
+      minimum,
+    ),
+    maximum,
+  );
+}
+
+function getCloudRateLimit(): number {
+  return resolveConfiguredInteger(
+    process.env.CLOUD_REQUESTS_PER_MINUTE,
+    DEFAULT_CLOUD_REQUESTS_PER_MINUTE,
+    2,
+    MAX_CLOUD_REQUESTS_PER_MINUTE,
+  );
+}
+
+function getMaxCloudPayloadBytes(): number {
+  return resolveConfiguredInteger(
+    process.env.MAX_CLOUD_PAYLOAD_BYTES,
+    DEFAULT_MAX_CLOUD_PAYLOAD_BYTES,
+    1,
+    MAX_CONFIGURED_CLOUD_PAYLOAD_BYTES,
+  );
+}
+
+function getClientIp(
+  request: Request,
+): string {
+  /*
+   * Prefer Vercel's platform-specific forwarded IP.
+   * This also keeps cloud rate limiting aligned with
+   * the AI and agent request-boundary logic.
+   */
+  const vercelForwarded =
+    request.headers
+      .get("x-vercel-forwarded-for")
+      ?.split(",")[0]
+      ?.trim();
+
+  if (vercelForwarded) {
+    return vercelForwarded;
+  }
+
+  const realIp =
+    request.headers
+      .get("x-real-ip")
+      ?.trim();
+
+  if (realIp) {
+    return realIp;
+  }
+
+  const forwardedEntries =
+    request.headers
+      .get("x-forwarded-for")
+      ?.split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+  return (
+    forwardedEntries?.at(-1) ??
+    "unknown"
+  );
+}
+
+function allowRequest(
+  request: Request,
+): boolean {
+  const key = getClientIp(request);
   const now = Date.now();
-  const limit = Math.max(2, Number(process.env.CLOUD_REQUESTS_PER_MINUTE || 12));
-  const current = buckets.get(key);
-  if (!current || current.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + 60_000 });
+  const limit = getCloudRateLimit();
+
+  /*
+   * Periodically remove expired entries instead of
+   * retaining stale buckets for the process lifetime.
+   */
+  if (buckets.size > 5_000) {
+    for (
+      const [bucketKey, bucket]
+      of buckets
+    ) {
+      if (bucket.resetAt <= now) {
+        buckets.delete(bucketKey);
+      }
+    }
+  }
+
+  const current =
+    buckets.get(key);
+
+  if (
+    !current ||
+    current.resetAt <= now
+  ) {
+    buckets.set(key, {
+      count: 1,
+      resetAt: now + 60_000,
+    });
+
     return true;
   }
-  if (current.count >= limit) return false;
+
+  if (current.count >= limit) {
+    return false;
+  }
+
   current.count += 1;
   return true;
 }
@@ -56,7 +184,10 @@ function hashToken(value: string) {
 }
 
 function configuredBodyLimit() {
-  return Number(process.env.MAX_CLOUD_PAYLOAD_BYTES || 1_500_000) + 16_384;
+  return (
+    getMaxCloudPayloadBytes() +
+    CLOUD_BODY_ENVELOPE_BYTES
+  );
 }
 
 function jsonResponse(body: unknown, init?: ResponseInit) {
@@ -108,7 +239,8 @@ export async function POST(request: Request) {
     "action" in body
       ? (body as { action?: unknown }).action
       : undefined;
-  const maxBytes = Number(process.env.MAX_CLOUD_PAYLOAD_BYTES || 1_500_000);
+  const maxBytes =
+    getMaxCloudPayloadBytes();
 
   if (action === "create") {
     const parsed = createSchema.safeParse(body);
