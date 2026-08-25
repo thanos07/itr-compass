@@ -5,6 +5,11 @@ import type { ParsedDocument, SourceClaim } from "@/lib/workspace-types";
 
 const MAX_BROWSER_TEXT = 800_000;
 
+const AIS_TOKEN = /\bais\b/;
+const TIS_TOKEN = /\btis\b/;
+const ITR_TOKEN = /\bitr(?:[-\s]?[1-7])?\b/;
+const ISIN_TOKEN = /\bisin\b/;
+
 export function redactSensitive(text: string) {
   return text
     .replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/g, "[PAN REDACTED]")
@@ -19,13 +24,13 @@ export function redactSensitive(text: string) {
 export function detectKind(text: string, fileName: string): ParsedDocument["kind"] {
   const sample = `${fileName}\n${text.slice(0, 100000)}`.toLowerCase();
   if (sample.includes("form no. 16") || sample.includes("certificate under section 203") || sample.includes("part b (annexure)")) return "form16";
-  if (sample.includes("annual information statement") || sample.includes("information category") && sample.includes("ais")) return "ais";
-  if (sample.includes("taxpayer information summary") || sample.includes("tis")) return "tis";
+  if (sample.includes("annual information statement") || sample.includes("information category") && AIS_TOKEN.test(sample)) return "ais";
+  if (sample.includes("taxpayer information summary") || TIS_TOKEN.test(sample)) return "tis";
   if (sample.includes("form 26as") || sample.includes("tax credit statement")) return "26as";
   if (fileName.toLowerCase().includes("prefill") && fileName.toLowerCase().endsWith(".json")) return "prefill-json";
-  if ((sample.includes("itr") || sample.includes("partagen1")) && fileName.toLowerCase().endsWith(".json")) return "itr-json";
+  if ((ITR_TOKEN.test(sample) || sample.includes("partagen1")) && fileName.toLowerCase().endsWith(".json")) return "itr-json";
   if (sample.includes("bank statement") || sample.includes("opening balance") && sample.includes("closing balance")) return "bank";
-  if (sample.includes("capital gains") || sample.includes("contract note") || sample.includes("isin")) return "broker";
+  if (sample.includes("capital gains") || sample.includes("contract note") || ISIN_TOKEN.test(sample)) return "broker";
   return "generic";
 }
 

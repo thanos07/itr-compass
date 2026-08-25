@@ -16,6 +16,69 @@ assert.equal(detectKind("Bank statement opening balance closing balance", "bank.
 assert.equal(detectKind("Capital gains report ISIN INE000000001", "broker.pdf"), "broker");
 assert.equal(detectKind("ordinary notes with no tax document markers", "notes.txt"), "generic");
 
+// Positive token-boundary regression cases.
+assert.equal(
+  detectKind(
+    "Information category AIS salary information",
+    "statement.pdf",
+  ),
+  "ais",
+);
+
+assert.equal(
+  detectKind(
+    "TIS transaction summary",
+    "summary.pdf",
+  ),
+  "tis",
+);
+
+assert.equal(
+  detectKind(
+    "ISIN INE000000001 quantity 10 purchase value 50000",
+    "statement.pdf",
+  ),
+  "broker",
+);
+
+/*
+ * Token-collision regression cases.
+ *
+ * Short tax-document abbreviations must be matched as
+ * standalone tokens rather than arbitrary substrings.
+ */
+assert.equal(
+  detectKind(
+    "Statistical summary of ordinary salary information",
+    "notes.txt",
+  ),
+  "generic",
+);
+
+assert.equal(
+  detectKind(
+    "Rising interest rates and general finance notes",
+    "notes.txt",
+  ),
+  "generic",
+);
+
+assert.equal(
+  detectKind(
+    "Information category raised by the employer",
+    "notes.txt",
+  ),
+  "generic",
+);
+
+assert.equal(
+  detectKind(
+    '{"description":"citric acid expense"}',
+    "notes.json",
+  ),
+  "generic",
+);
+
 assert.equal(parseIndianNumber("₹12,50,000"), 1_250_000);
 assert.equal(parseIndianNumber(" 70,000.50 "), 70_000.5);
 assert.equal(parseIndianNumber("(1,234)"), -1_234);
