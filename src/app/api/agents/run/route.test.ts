@@ -378,6 +378,296 @@ async function runTest() {
     console.log(
       "Agent provider-rate-limit regression test passed.",
     );
+
+    /*
+     * Provider authentication regressions.
+     *
+     * Both 401 and 403 responses must become a controlled
+     * local 503 without exposing provider-controlled text.
+     */
+    for (
+      const providerStatus
+      of [401, 403]
+    ) {
+      const secret =
+        `TEST_PROVIDER_AUTH_SECRET_${providerStatus}`;
+
+      const authLogs: string[] =
+        [];
+
+      console.error =
+        (...args: unknown[]) => {
+          authLogs.push(
+            args
+              .map((value) =>
+                String(value),
+              )
+              .join(" "),
+          );
+        };
+
+      globalThis.fetch =
+        (async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                message: secret,
+                type:
+                  "authentication_error",
+              },
+            }),
+            {
+              status:
+                providerStatus,
+
+              headers: {
+                "content-type":
+                  "application/json",
+              },
+            },
+          )) as typeof fetch;
+
+      const authRequest =
+        new Request(
+          "http://localhost/api/agents/run",
+          {
+            method: "POST",
+
+            headers: {
+              "content-type":
+                "application/json",
+
+              "x-real-ip":
+                providerStatus === 401
+                  ? "203.0.113.121"
+                  : "203.0.113.122",
+            },
+
+            body: JSON.stringify({
+              processingConsent: true,
+
+              agent: "review",
+
+              workspace:
+                createEmptyWorkspace(),
+
+              inputFingerprint:
+                `provider-auth-${providerStatus}-regression`,
+            }),
+          },
+        );
+
+      const authResponse =
+        await POST(authRequest);
+
+      assert.equal(
+        authResponse.status,
+        503,
+        `Groq ${providerStatus} must become HTTP 503.`,
+      );
+
+      assert.equal(
+        authResponse.headers.get(
+          "cache-control",
+        ),
+        "no-store",
+      );
+
+      const authBody =
+        (await authResponse.json()) as {
+          error?: unknown;
+        };
+
+      assert.equal(
+        typeof authBody.error,
+        "string",
+      );
+
+      assert.match(
+        authBody.error as string,
+        /authentication failed/i,
+      );
+
+      assert.equal(
+        (
+          authBody.error as string
+        ).includes(secret),
+        false,
+        "Provider authentication details must not be exposed to the client.",
+      );
+
+      assert.equal(
+        authLogs.some(
+          (line) =>
+            line.includes(secret),
+        ),
+        false,
+        "Provider authentication details must not be written to server logs.",
+      );
+
+      assert.equal(
+        authLogs.some(
+          (line) =>
+            line.includes(
+              `status=${providerStatus}`,
+            ),
+        ),
+        true,
+        "Only the safe provider authentication status should be logged.",
+      );
+    }
+
+    console.error =
+      originalConsoleError;
+
+    console.log(
+      "Agent provider-authentication regressions passed.",
+    );
+
+    /*
+     * Generic provider 5xx regression.
+     *
+     * Provider outage details must become the generic
+     * local 502 response and must not leak to logs.
+     */
+    const providerServerSecret =
+      "TEST_PROVIDER_500_SECRET";
+
+    const providerServerLogs: string[] =
+      [];
+
+    console.error =
+      (...args: unknown[]) => {
+        providerServerLogs.push(
+          args
+            .map((value) =>
+              String(value),
+            )
+            .join(" "),
+        );
+      };
+
+    globalThis.fetch =
+      (async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              message:
+                providerServerSecret,
+
+              type:
+                "provider_internal_error",
+            },
+          }),
+          {
+            status: 500,
+
+            headers: {
+              "content-type":
+                "application/json",
+            },
+          },
+        )) as typeof fetch;
+
+    const providerServerRequest =
+      new Request(
+        "http://localhost/api/agents/run",
+        {
+          method: "POST",
+
+          headers: {
+            "content-type":
+              "application/json",
+
+            "x-real-ip":
+              "203.0.113.123",
+          },
+
+          body: JSON.stringify({
+            processingConsent: true,
+
+            agent: "review",
+
+            workspace:
+              createEmptyWorkspace(),
+
+            inputFingerprint:
+              "provider-500-regression",
+          }),
+        },
+      );
+
+    const providerServerResponse =
+      await POST(
+        providerServerRequest,
+      );
+
+    assert.equal(
+      providerServerResponse.status,
+      502,
+      "Groq 5xx failures must become HTTP 502.",
+    );
+
+    assert.equal(
+      providerServerResponse.headers.get(
+        "cache-control",
+      ),
+      "no-store",
+    );
+
+    const providerServerBody =
+      (await providerServerResponse.json()) as {
+        error?: unknown;
+      };
+
+    assert.equal(
+      typeof providerServerBody.error,
+      "string",
+    );
+
+    assert.match(
+      providerServerBody.error as string,
+      /temporarily unavailable/i,
+    );
+
+    assert.equal(
+      (
+        providerServerBody.error as string
+      ).includes(
+        providerServerSecret,
+      ),
+      false,
+      "Provider 5xx details must not be exposed to the client.",
+    );
+
+    assert.equal(
+      providerServerLogs.some(
+        (line) =>
+          line.includes(
+            providerServerSecret,
+          ),
+      ),
+      false,
+      "Provider 5xx details must not be written to server logs.",
+    );
+
+    assert.equal(
+      providerServerLogs.some(
+        (line) =>
+          line.includes(
+            "status=500",
+          ),
+      ),
+      true,
+      "Only the safe provider 5xx status should be logged.",
+    );
+
+    console.error =
+      originalConsoleError;
+
+    console.log(
+      "Agent provider-5xx regression test passed.",
+    );
   } finally {
     LEGAL_CORPUS.forEach(
       (source, index) => {
