@@ -38,6 +38,9 @@ async function runTest() {
   const originalFetch =
     globalThis.fetch;
 
+  const originalConsoleError =
+    console.error;
+
   let outboundFetchAttempted =
     false;
 
@@ -220,6 +223,161 @@ async function runTest() {
     console.log(
       "Legal-agent fail-closed route test passed.",
     );
+
+    /*
+     * Provider-boundary regression.
+     *
+     * Simulate Groq returning HTTP 429 and verify
+     * that the route returns the controlled local
+     * message without exposing provider response data.
+     */
+    outboundFetchAttempted =
+      false;
+
+    globalThis.fetch =
+      (async () => {
+        outboundFetchAttempted =
+          true;
+
+        return new Response(
+          JSON.stringify({
+            error: {
+              message:
+                "TEST_PROVIDER_SECRET_MESSAGE",
+              type:
+                "rate_limit_error",
+            },
+          }),
+          {
+            status: 429,
+
+            headers: {
+              "content-type":
+                "application/json",
+            },
+          },
+        );
+      }) as typeof fetch;
+
+    const providerErrorLogs: string[] =
+      [];
+
+    console.error =
+      (...args: unknown[]) => {
+        providerErrorLogs.push(
+          args
+            .map((value) =>
+              String(value),
+            )
+            .join(" "),
+        );
+      };
+
+    const providerRateLimitRequest =
+      new Request(
+        "http://localhost/api/agents/run",
+        {
+          method: "POST",
+
+          headers: {
+            "content-type":
+              "application/json",
+
+            "x-real-ip":
+              "203.0.113.120",
+          },
+
+          body: JSON.stringify({
+            processingConsent: true,
+
+            agent: "review",
+
+            workspace:
+              createEmptyWorkspace(),
+
+            inputFingerprint:
+              "provider-rate-limit-regression",
+          }),
+        },
+      );
+
+    const providerRateLimitResponse =
+      await POST(
+        providerRateLimitRequest,
+      );
+
+    assert.equal(
+      outboundFetchAttempted,
+      true,
+      "Provider regression must reach the mocked Groq transport.",
+    );
+
+    assert.equal(
+      providerRateLimitResponse.status,
+      429,
+      "Groq rate limiting must be represented as HTTP 429.",
+    );
+
+    assert.equal(
+      providerRateLimitResponse.headers.get(
+        "cache-control",
+      ),
+      "no-store",
+    );
+
+    const providerRateLimitBody =
+      (await providerRateLimitResponse.json()) as {
+        error?: unknown;
+      };
+
+    assert.equal(
+      typeof providerRateLimitBody.error,
+      "string",
+    );
+
+    assert.match(
+      providerRateLimitBody.error as string,
+      /rate limit/i,
+    );
+
+    assert.equal(
+      (
+        providerRateLimitBody.error as string
+      ).includes(
+        "TEST_PROVIDER_SECRET_MESSAGE",
+      ),
+      false,
+      "Provider error details must not be exposed to the client.",
+    );
+
+    assert.equal(
+      providerErrorLogs.some(
+        (line) =>
+          line.includes(
+            "TEST_PROVIDER_SECRET_MESSAGE",
+          ),
+      ),
+      false,
+      "Provider response details must not be written to server logs.",
+    );
+
+    assert.equal(
+      providerErrorLogs.some(
+        (line) =>
+          line.includes(
+            "status=429",
+          ),
+      ),
+      true,
+      "The safe provider status should still be logged.",
+    );
+
+    console.error =
+      originalConsoleError;
+
+    console.log(
+      "Agent provider-rate-limit regression test passed.",
+    );
   } finally {
     LEGAL_CORPUS.forEach(
       (source, index) => {
@@ -259,6 +417,9 @@ async function runTest() {
 
     globalThis.fetch =
       originalFetch;
+
+    console.error =
+      originalConsoleError;
   }
 }
 

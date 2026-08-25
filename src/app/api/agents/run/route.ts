@@ -183,14 +183,6 @@ function getErrorStatus(error: unknown): number | undefined {
   return undefined;
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message.slice(0, 500);
-  }
-
-  return "Unknown Groq provider error";
-}
-
 const money = z
   .number()
   .finite()
@@ -841,6 +833,13 @@ export async function POST(
     const client = new Groq({
       apiKey:
         process.env.GROQ_API_KEY,
+
+      /*
+       * Use the current global fetch implementation so
+       * provider-boundary behavior can be regression-tested
+       * without making a real outbound request.
+       */
+      fetch: globalThis.fetch,
     });
 
     const completion =
@@ -1098,16 +1097,15 @@ export async function POST(
     const status =
       getErrorStatus(error);
 
-    const message =
-      getErrorMessage(error);
-
     /*
-     * Log provider status and a short message only.
-     * Do not log workspaces, prompts, source documents,
-     * financial values or API keys.
+     * Log only the provider status.
+     *
+     * Provider exception messages can contain response
+     * bodies or other provider-controlled content, so
+     * they must not be copied into application logs.
      */
     console.error(
-      `[Groq agent] request failed status=${status ?? "unknown"} message=${message}`,
+      `[Groq agent] request failed status=${status ?? "unknown"}`,
     );
 
     if (status === 429) {
