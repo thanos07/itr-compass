@@ -764,6 +764,25 @@ export async function POST(
         )
       : [];
 
+  if (
+    agent === "legal" &&
+    retrieved.length === 0
+  ) {
+    console.warn(
+      "[Legal agent] blocked: no current legal sources passed freshness checks.",
+    );
+
+    return jsonResponse(
+      {
+        error:
+          `No current ${snapshot.assessmentYear} legal sources passed freshness checks. Legal guidance is temporarily unavailable; verify the official Income Tax sources before relying on this feature.`,
+      },
+      {
+        status: 503,
+      },
+    );
+  }
+
   const deterministicTools =
     agent === "legal"
       ? {
