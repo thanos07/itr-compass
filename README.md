@@ -482,6 +482,8 @@ GROQ_AGENT_MODEL=openai/gpt-oss-20b
 CSP_REPORT_ONLY=false
 ```
 
+Existing deployments that still set the retired personal portfolio address in `NEXT_PUBLIC_OPERATOR_URL` use the current creator URL from `src/lib/site.ts`. Other valid custom operator URLs are preserved.
+
 ## Current calculation boundaries
 
 The estimator covers the displayed AY 2026–27:

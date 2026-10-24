@@ -8,7 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { siteConfig } from "@/lib/site";
+import { resolveOperatorUrl, siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Terms of use",
@@ -21,10 +21,7 @@ const operator =
   siteConfig.creator.name ||
   "Md Noor";
 
-const operatorUrl =
-  process.env.NEXT_PUBLIC_OPERATOR_URL ||
-  siteConfig.creator.url ||
-  "https://mdnoorportfolio.vercel.app/";
+const operatorUrl = resolveOperatorUrl(process.env.NEXT_PUBLIC_OPERATOR_URL);
 
 const contact =
   process.env.NEXT_PUBLIC_LEGAL_CONTACT ||

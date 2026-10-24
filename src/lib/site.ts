@@ -17,6 +17,22 @@ export const siteConfig = {
   },
 };
 
+/** Keep old deployments current without overriding a custom operator website. */
+export function resolveOperatorUrl(configuredUrl?: string): string {
+  if (!configuredUrl) return siteConfig.creator.url;
+
+  try {
+    const url = new URL(configuredUrl);
+    // Existing deployments may still have the retired portfolio in their env.
+    if (url.hostname === "portfolio-rosy-psi-74.vercel.app") {
+      return siteConfig.creator.url;
+    }
+    return configuredUrl;
+  } catch {
+    return siteConfig.creator.url;
+  }
+}
+
 export const primaryNav = [
   { href: "/", label: "Overview" },
   {
