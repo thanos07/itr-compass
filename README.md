@@ -469,7 +469,7 @@ NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
 NEXT_PUBLIC_PARSER_URL=https://your-parser.onrender.com
 
 NEXT_PUBLIC_OPERATOR_NAME=Md Noor
-NEXT_PUBLIC_OPERATOR_URL=https://portfolio-rosy-psi-74.vercel.app/
+NEXT_PUBLIC_OPERATOR_URL=https://mdnoorportfolio.vercel.app/
 NEXT_PUBLIC_PRIVACY_CONTACT=
 NEXT_PUBLIC_SECURITY_CONTACT=
 NEXT_PUBLIC_LEGAL_CONTACT=
@@ -554,7 +554,7 @@ See [`NOTICE.md`](NOTICE.md).
 
 ## Author
 
-Designed and developed by **[Md Noor](https://portfolio-rosy-psi-74.vercel.app/)**.
+Designed and developed by **[Md Noor](https://mdnoorportfolio.vercel.app/)**.
 
 GitHub: [@thanos07](https://github.com/thanos07)
 

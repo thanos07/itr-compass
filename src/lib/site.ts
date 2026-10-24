@@ -13,7 +13,7 @@ export const siteConfig = {
   creator: {
     name: "Md Noor",
     url:
-      "https://portfolio-rosy-psi-74.vercel.app/",
+      "https://mdnoorportfolio.vercel.app/",
   },
 };
 

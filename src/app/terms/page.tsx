@@ -24,7 +24,7 @@ const operator =
 const operatorUrl =
   process.env.NEXT_PUBLIC_OPERATOR_URL ||
   siteConfig.creator.url ||
-  "https://portfolio-rosy-psi-74.vercel.app/";
+  "https://mdnoorportfolio.vercel.app/";
 
 const contact =
   process.env.NEXT_PUBLIC_LEGAL_CONTACT ||
